@@ -19,7 +19,7 @@ OCaml UTF-X encoded strings. It is distributed under the BSD3 license.
 [1]: http://www.unicode.org/reports/tr29/
 [2]: http://www.unicode.org/reports/tr14/
 
-Home page: http://erratique.ch/software/uuseg  
+Home page: http://erratique.ch/software/uuseg  
 Contact: Daniel Bünzli `<daniel.buenzl i@erratique.ch>`
 
 ## Installation
