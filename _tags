@@ -1,0 +1,7 @@
+<**/*.{ml,mli}> : bin_annot
+<src> : include
+<src/*> : package(uucp)
+<src/uuseg_string*> : package(uutf)
+<test> : include
+<test/*> : package(uutf), package(uucp)
+<test/usegtrip.*> : package(cmdliner)
