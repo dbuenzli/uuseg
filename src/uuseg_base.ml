@@ -4,7 +4,9 @@
    %%NAME%% release %%VERSION%%
   ---------------------------------------------------------------------------*)
 
-let pp_ret ppf v = match (v :> [`Await | `Boundary | `End | `Uchar of int]) with
+type ret = [ `Await | `Boundary | `End | `Uchar of int ]
+
+let pp_ret ppf v = match (v :> ret) with
 | `Await -> Format.fprintf ppf "`Await"
 | `Boundary -> Format.fprintf ppf "`Boundary"
 | `End -> Format.fprintf ppf "`End"

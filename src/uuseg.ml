@@ -67,6 +67,7 @@ let line_break =
 (* Generic segmenter inteface *)
 
 type t = Seg : boundary * 'a * 'a segmenter -> t
+type ret = Uuseg_base.ret
 
 let create boundary =
   let (C seg) = match boundary with

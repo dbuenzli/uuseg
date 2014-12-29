@@ -85,7 +85,7 @@ let add s = function
 | `Await ->
     begin match s.state with
     | Flush ->
-        s.state <- Fill; (s.buf :> [`Await | `End | `Boundary | `Uchar of int])
+        s.state <- Fill; (s.buf :> Uuseg_base.ret)
     | End -> `End
     | Fill -> `Await
     end

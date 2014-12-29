@@ -78,14 +78,16 @@ val pp_boundary : Format.formatter -> boundary -> unit
 type t
 (** The type for Unicode text segmenters. *)
 
+type ret = [ `Boundary | `Uchar of uchar | `Await | `End ]
+(** The type for segmenter results. See {!add}. *)
+
 val create : [< boundary ] -> t
 (** [create b] is an Unicode text segmenter for boundaries of type [b]. *)
 
 val boundary : t -> boundary
 (** [boundary s] is the type of boundaries detected by [s]. *)
 
-val add : t -> [ `Uchar of uchar | `Await | `End ] ->
-  [ `Boundary | `Uchar of uchar | `Await | `End ]
+val add : t -> [ `Uchar of uchar | `Await | `End ] -> ret
 (** [add s v] is:
     {ul
     {- [`Boundary] if there is a boundary at that point in the sequence of
@@ -124,8 +126,7 @@ val copy : t -> t
 (** [copy s] is a copy of [s] in its current state. Subsequent {!add}s on
     [s] do not affect the copy. *)
 
-val pp_ret : Format.formatter ->
-  [< `Uchar of uchar | `Await | `End | `Boundary ] -> unit
+val pp_ret : Format.formatter -> [< ret] -> unit
 (** [pp_ret ppf v] prints an unspecified representation of [v] on [ppf]. *)
 
 (** {1 Custom segmenters} *)
@@ -135,8 +136,7 @@ val custom :
   name:string ->
   create:(unit -> 'a) ->
   copy:('a -> 'a) ->
-  add: ('a -> [ `Uchar of uchar | `Await | `End ] ->
-        [ `Boundary | `Uchar of uchar | `Await | `End ]) -> custom
+  add: ('a -> [ `Uchar of uchar | `Await | `End ] -> ret) -> custom
   (** [create ~mandatory ~name ~create ~copy ~add] is a custom segmenter.
       {ul
       {- [name] is a name to identify the segmenter.}
@@ -154,12 +154,12 @@ val custom :
          {!err_exp_await} and {!err_ended} to raise [Invalid_argument]
          exception in {!add}s error cases.}} *)
 
-val err_exp_await : [< `Uchar of uchar | `End] -> 'a
+val err_exp_await : [< ret] -> 'a
 (** [err_exp_await fnd] should be used by custom segmenters when
     the client tries to {!add} an [`Uchar] or [`End] while the last
     returned value was not an [`Await]. *)
 
-val err_ended : [< `Uchar of uchar | `End] -> 'a
+val err_ended : [< ret] -> 'a
 (** [err_ended ()] should be used by custom segmenter when the client
     tries to {!add} [`Uchar] or [`End] after [`End] was already added. *)
 

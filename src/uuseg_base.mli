@@ -8,14 +8,16 @@
 
 (** {1 Common} *)
 
-val pp_ret : Format.formatter ->
-  [< `Await | `Boundary | `End | `Uchar of int ] -> unit
+type ret = [ `Await | `Boundary | `End | `Uchar of int ]
+(** See {!Uuseg.ret}. *)
+
+val pp_ret : Format.formatter -> [< ret ] -> unit
 (** See {!Uuseg.pp_ret}. *)
 
-val err_exp_await : [< `Uchar of int | `End] -> 'a
+val err_exp_await : [< ret] -> 'a
 (** See {!Uuseg.err_exp_await}. *)
 
-val err_ended : [< `Uchar of int | `End] -> 'a
+val err_ended : [< ret] -> 'a
 (** See {!Uuseg.err_ended}. *)
 
 (*---------------------------------------------------------------------------
