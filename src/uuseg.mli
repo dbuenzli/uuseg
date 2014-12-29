@@ -136,7 +136,7 @@ val custom :
   name:string ->
   create:(unit -> 'a) ->
   copy:('a -> 'a) ->
-  add: ('a -> [ `Uchar of uchar | `Await | `End ] -> ret) -> custom
+  add: ('a -> [ `Uchar of uchar | `Await | `End ] -> ret) -> unit -> custom
   (** [create ~mandatory ~name ~create ~copy ~add] is a custom segmenter.
       {ul
       {- [name] is a name to identify the segmenter.}

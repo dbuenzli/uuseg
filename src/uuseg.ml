@@ -87,7 +87,7 @@ let pp_ret = Uuseg_base.pp_ret
 
 (* Custom segmenters *)
 
-let custom ?(mandatory = mandatory_default) ~name ~create ~copy ~add =
+let custom ?(mandatory = mandatory_default) ~name ~create ~copy ~add () =
   C { name; create; copy; mandatory; add }
 
 let err_exp_await = Uuseg_base.err_exp_await
