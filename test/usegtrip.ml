@@ -6,9 +6,9 @@
 
 let str = Printf.sprintf
 let pp = Format.fprintf
-let pp_pos ppf d =
-  pp ppf "%d.%d:(%d) "
+let pp_pos ppf d = pp ppf "%d.%d:(%d,%06X) "
     (Uutf.decoder_line d) (Uutf.decoder_col d) (Uutf.decoder_count d)
+    (Uutf.decoder_byte_count d)
 
 let pp_malformed ppf bs =
   let l = String.length bs in
@@ -19,7 +19,11 @@ let pp_malformed ppf bs =
 
 let exec = Filename.basename Sys.executable_name
 let log f = Format.eprintf ("%s: " ^^ f ^^ "@?") exec
-let log_malformed inf d bs = log "%s:%a: %a@." inf pp_pos d pp_malformed bs
+
+let input_malformed = ref false
+let log_malformed inf d bs =
+  input_malformed := true;
+  log "%s:%a: %a@." inf pp_pos d pp_malformed bs
 
 let u_rep = `Uchar Uutf.u_rep
 
@@ -151,8 +155,15 @@ let cmd =
         the locale independent specifications of UAX 29 and UAX 14.
         Boundaries are represented by the UTF-8 encoded delimiter string
         specified with the option $(b,-d) (defaults to `|').";
+    `P "Invalid byte sequences in the input are reported on stderr and
+        replaced by the Unicode replacement character (U+FFFD) in the output.";
     `S seg_docs;
     `S "OPTIONS";
+    `S "EXIT STATUS";
+    `P "$(tname) exits with one of the following values:";
+    `I ("0", "no error occured");
+    `I ("1", "a command line parsing error occured");
+    `I ("2", "the input text was malformed");
     `S "BUGS";
     `P "This program is distributed with the Uuseg OCaml library.
         See http://erratique.ch/software/uuseg for contact
@@ -161,7 +172,9 @@ let cmd =
   Term.(pure do_cmd $ cmd $ seg $ file $ enc $ delim $ ascii),
   Term.info "usegtrip" ~version:"%%VERSION%%" ~doc ~man
 
-let () = match Term.eval cmd with `Error _ -> exit 1 | _ -> exit 0
+let () = match Term.eval cmd with
+| `Error _ -> exit 1
+| _ -> if !input_malformed then exit 2 else exit 0
 
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 Daniel C. Bünzli
