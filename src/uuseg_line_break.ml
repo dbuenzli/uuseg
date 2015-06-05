@@ -37,7 +37,8 @@
    LB21                               × (BA|HY|NS)
                                    BB ×
    LB21a                   HL (HY|BA) ×
-   LB22              (AL|HL|ID|IN|NU) × IN
+   LB21b                           SY × HL
+   LB22           (AL|HL|EX|ID|IN|NU) × IN
    LB23                            ID × PO
                               (AL|HL) × NU
                                    NU × (AL|HL)
@@ -169,7 +170,8 @@ let decide s =
   | (* LB21 *)  _, _, (BA|HY|NS) -> no_boundary s
   |             _, BB, _ -> no_boundary s
   | (* LB21a *) HL, (BA|HY), _ -> no_boundary s
-  | (* LB22 *)  _, (AL|HL|ID|IN|NU), IN -> no_boundary s
+  | (* LB21b *) _, SY, HL -> no_boundary s
+  | (* LB22 *)  _, (AL|HL|EX|ID|IN|NU), IN -> no_boundary s
   | (* LB23 *)  _, ID, PO -> no_boundary s
   |             _, (AL|HL), NU -> no_boundary s
   |             _, NU, (AL|HL) -> no_boundary s
