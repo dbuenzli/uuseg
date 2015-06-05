@@ -13,7 +13,7 @@
    SB4.                   (SE|CR|LF) ÷
    SB5.                   X (EX|FO)* → X
    SB6.                           AT × NU
-   SB7.                        UP AT × UP
+   SB7.                   (UP|LO) AT × UP
 
    SB8.                   AT CL* SP* × (¬(LE|UP|LO|SE|CR|LF|ST|AT))* LO
     rewrite w.o. ¬        AT CL* SP* × (CL|NU|SC|SP|XX)* LO
@@ -121,7 +121,7 @@ let decide s =
   | (* SB4 *) _, (SE|CR|LF), _ -> `Boundary
   (* SB5 is handled in [add]. *)
   | (* SB6 *)  _, AT, NU -> no_boundary s
-  | (* SB7 *)  UP, AT, UP -> no_boundary s
+  | (* SB7 *) (UP|LO), AT, UP -> no_boundary s
   | (* SB8-SB11 is also handled in [add]. *)
                _, (AT|ST), sentence -> decide_sb8_sb11 s sentence (r0_flush s)
   | (* SB12 *) _, _, _ -> no_boundary s
