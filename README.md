@@ -14,7 +14,7 @@ representation.
 
 Uuseg depends on [Uucp](http://erratique.ch/software/uucp) and
 optionally on [Uutf](http://erratique.ch/software/uutf) for support on
-OCaml UTF-X encoded strings. It is distributed under the BSD3 license.
+OCaml UTF-X encoded strings. It is distributed under the ISC license.
 
 [1]: http://www.unicode.org/reports/tr29/
 [2]: http://www.unicode.org/reports/tr14/
