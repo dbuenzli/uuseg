@@ -1,9 +1,9 @@
 _build
 tmp
-CLOCK.org
 *~
 \.\#*
 \#*#
-*.native 
+*.native
 *.byte
+*.install
 test/*Test.txt

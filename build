@@ -7,22 +7,24 @@ set -e
 OCAMLBUILD=${OCAMLBUILD:="ocamlbuild -tag debug -classic-display \
                           -use-ocamlfind"}
 
+TEST_VERSION=${TEST_VERSION:=latest}
+
 action ()
 {
     case $1 in
-        default) $OCAMLBUILD uuseg.cmx uuseg_string.cmx ;;
-        tests)   $OCAMLBUILD test/tests.otarget ;;
-        doc)     shift; pkg-doc $* doc/dev-api.docdir ;;
-        api-doc) shift; pkg-doc $* doc/api.docdir ;;
-        download-test-files) 
+        default) topkg build ;;
+        doc)     shift; topkg doc --dev $* ;;
+        api-doc) shift; topkg doc $* ;;
+        test)    tokpg build && topkg test ;;
+        download-test-files)
             test="Line Grapheme Word Sentence"
             for f in $test; do
                 curl -# -S \
-                "http://www.unicode.org/Public/UCD/latest/ucd/auxiliary/${f}BreakTest.txt" > test/${f}BreakTest.txt
+                "http://www.unicode.org/Public/UCD/$TEST_VERSION/ucd/auxiliary/${f}BreakTest.txt" > test/${f}BreakTest.txt
             done
             ;;
-        clean)   $OCAMLBUILD -clean ;;
-        *)       $OCAMLBUILD $* ;;
+        clean)  topkg build clean ;;
+        *)      $OCAMLBUILD $* ;;
     esac
 }
 
