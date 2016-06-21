@@ -20,7 +20,7 @@ action ()
             test="Line Grapheme Word Sentence"
             for f in $test; do
                 curl -# -S \
-                "http://www.unicode.org/Public/UCD/$TEST_VERSION/ucd/auxiliary/${f}BreakTest.txt" > test/${f}BreakTest.txt
+                "http://www.unicode.org/Public/$TEST_VERSION/ucd/auxiliary/${f}BreakTest.txt" > test/${f}BreakTest.txt
             done
             ;;
         clean)  topkg build clean ;;
