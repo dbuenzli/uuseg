@@ -11,13 +11,13 @@ type t =
     mutable first : int;
     mutable last : int; }
 
-let create n = { buf = Array.create n dummy_u; first = 0; last = -1; }
+let create n = { buf = Array.make n dummy_u; first = 0; last = -1; }
 let copy b = { b with buf = Array.copy b.buf; }
 let empty b = b.last = -1
 let len b = (b.last - b.first) + 1
 let grow b =
   let len = Array.length b.buf in
-  let newbuf = Array.create (2 * len) dummy_u in
+  let newbuf = Array.make (2 * len) dummy_u in
   Array.blit b.buf 0 newbuf 0 len; b.buf <- newbuf
 
 let add b add =
