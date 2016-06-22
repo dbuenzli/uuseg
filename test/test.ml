@@ -240,7 +240,7 @@ let test_others () =
   let w = `Word in
   test w [] [`B;];
   let s = `Sentence in
-  test s [] [`B;];
+  test s [] [];
   let l = `Line_break in
   test l [] [];
   ()

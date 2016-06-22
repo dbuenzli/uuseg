@@ -7,8 +7,8 @@
 (* These are the rules as found in [1], with property values aliases [2]
    substituted.
 
-   SB1.                          sot ÷
-   SB2.                              ÷ eot
+   SB1.                          sot ÷ Any
+   SB2.                          Any ÷ eot
    SB3.                           CR × LF
    SB4.                   (SE|CR|LF) ÷
    SB5.                   X (EX|FO)* → X
@@ -221,7 +221,10 @@ let rec add s = function
     end
 | `End ->
     begin match s.state with
-    | Fill -> s.state <- End; `Boundary (* SB2 and SB1 on empty seq *)
+    | Fill ->
+        s.state <- End;
+        if l0_sentence s = Sot then `End (* No boundary on empty seq *) else
+        `Boundary (* SB1 and SB2 *)
     | Fill_CL_SP -> s.state <- End; `Boundary (* SB2 *)
     | Fill_SB8 -> s.state <- End; r0_sentence_set s Eot; `Boundary (* SB11 *)
     | Flush -> Uuseg_base.err_exp_await `End
