@@ -6,7 +6,10 @@
 
 type 'a folder = 'a -> string -> 'a
 
-let fold fold enc seg f acc0 s =
+let fold
+    (fold : ?pos:int -> ?len:int -> 'a Uutf.String.folder -> 'a -> string -> 'a)
+    enc seg f acc0 s
+  =
   let b = Buffer.create 42 in
   let flush_segment acc =
     let segment = Buffer.contents b in
