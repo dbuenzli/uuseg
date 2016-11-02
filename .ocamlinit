@@ -1,6 +1,0 @@
-#directory "_build/src"
-#use "topfind"
-#require "uucp"
-#require "uutf"
-#load "uuseg.cma"
-#load "uuseg_string.cma"
