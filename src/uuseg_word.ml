@@ -7,12 +7,13 @@
 (* These are the rules as found in [1], with property values aliases [2]
    substituted.
 
-   WB1.                 sot ÷
-   WB2.                     ÷ eot
+   WB1.                 sot ÷ Any
+   WB2.                 Any ÷ eot
    WB3.                  CR × LF
    WB3a.         (NL|CR|LF) ÷
    WB3b.                    ÷ (NL|CR|LF)
-   WB4.      X (Extend|FO)* → X
+   WB3c.                ZWJ × (Glue_After_Zwj|EBG)
+   WB4.  X (Extend|FO|ZWJ)* → X
    WB5.             (LE|HL) × (LE|HL)
    WB6.             (LE|HL) × (ML|MB|SQ) (LE|HL)
    WB7.  (LE|HL) (ML|MB|SQ) × (LE|HL)
@@ -27,8 +28,11 @@
    WB13.                 KA × KA
    WB13a.  (LE|HL|NU|KA|EX) × EX
    WB13b.                EX × (LE|HL|NU|KA)
+   WB14.           (EB|EBG) × EM
+   WB15     sot (RI RI)* RI × RI
+   WB15   [^RI] (RI RI)* RI × RI
    WB13c.                RI × RI
-   WB14.                Any ÷ Any
+   WB999.               Any ÷ Any
 
    [1]: http://www.unicode.org/reports/tr29/#Word_boundaries
    [2]: http://www.unicode.org/Public/7.0.0/ucd/PropertyValueAliases.txt
@@ -46,14 +50,15 @@
    already returned to client /  \ buffered in segmenter *)
 
 type word =
-| CR | DQ | EX | Extend | FO | HL | KA | LE | LF | MB | ML | MN
-| NL | NU | RI | SQ | XX | Invalid | Sot | Eot
+| CR | DQ | EX | EB | EBG | EM | Extend | FO | GAZ | HL | KA | LE | LF
+| MB | ML | MN | NL | NU | RI | SQ | XX | ZWJ | Invalid | Sot | Eot
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.word. *)
 
 let byte_to_word =
-  [| CR; DQ; EX; Extend; FO; HL; KA; LE; LF; MB; ML; MN; NL; NU; RI; SQ; XX; |]
+  [| CR; DQ; EX; EB; EBG; EM; Extend; FO; GAZ; HL; KA; LE; LF;
+     MB; ML; MN; NL; NU; RI; SQ; XX; ZWJ |]
 
 let word u = byte_to_word.(Uucp.Break.Low.word u)
 
@@ -68,7 +73,8 @@ type t =
     mutable l0 : int;                            (* index in [window] of l0. *)
     rbufs : Uuseg_buf.t array;(* buffers for slots on the right of boundary. *)
     mutable r0_bufs : int;      (* index of buffer for slot [r0] in [rbufs]. *)
-    mutable rfill : int; }                   (* index of right slot to fill. *)
+    mutable rfill : int;                     (* index of right slot to fill. *)
+    mutable ri_pair : bool; }         (* [true] if boundary is on a RI pair. *)
 
 let create () =
   { state = Fill;
@@ -76,7 +82,8 @@ let create () =
     l0 = 1;
     rbufs = [| Uuseg_buf.create 13; Uuseg_buf.create 13; |];
     r0_bufs = 0;
-    rfill = -1; }
+    rfill = -1;
+    ri_pair = true; }
 
 let copy s =
   let copy_rbuf i = Uuseg_buf.copy s.rbufs.(i) in
@@ -106,6 +113,9 @@ let window_move s =
   s.r0_bufs <- (s.r0_bufs + 1) mod Array.length s.rbufs;
   s.rfill <- s.rfill - 1
 
+(* The following is totally incomprehensible we need to
+   move to a better model. *)
+
 let decidable s = window_full s || s.state = End
 let decide s =
   let no_boundary s = Uuseg_buf.flush s.rbufs.(s.r0_bufs) in
@@ -116,11 +126,12 @@ let decide s =
   let l1 = (l0 + 3) mod wlen in
   let w = s.window in
   match w.(l1), w.(l0) (**),(**) w.(r0), w.(r1) with
-  | (* WB1 *)   _, Sot, _, _ -> `Boundary
-  (* WB2 is handled in [add]. *)
+  | (* ε *)     _, Sot, Eot, _ -> `End
+  | (* WB1-2 *) _, (Sot|Eot), _, _ -> `Boundary
   | (* WB3 *)   _, CR, LF, _ -> no_boundary s
   | (* WB3a *)  _, (NL|CR|LF), _, _ -> `Boundary
   | (* WB3b *)  _, _, (NL|CR|LF), _ -> `Boundary
+  | (* WB3c *)  _, ZWJ,(GAZ|EBG), _ -> no_boundary s
   (* WB4 is handled indirectly during Fill *)
   | (* WB5 *)   _, (LE|HL), (LE|HL), _ -> no_boundary s
   | (* WB6 *)   _, (LE|HL), (ML|MB|SQ), (LE|HL) -> no_boundary s
@@ -136,15 +147,18 @@ let decide s =
   | (* WB13 *)  _, KA, KA, _ -> no_boundary s
   | (* WB13a *) _, (LE|HL|NU|KA|EX), EX, _ -> no_boundary s
   | (* WB13b *) _, EX, (LE|HL|NU|KA), _ -> no_boundary s
-  | (* WB13c *) _, RI, RI, _ -> no_boundary s
-  | (* WB14  *) _, _, _, _ -> `Boundary
+  | (* WB14 *)  _, (EB|EBG),EM, _ -> no_boundary s
+  | (* WB15-16 *) _, RI, RI, _ when s.ri_pair ->
+      s.ri_pair <- false; no_boundary s
+  | (* WB999 *) _, _, _, _ ->
+      s.ri_pair <- true; `Boundary
 
 let add s = function
 | `Uchar u as add ->
     begin match s.state with
     | Fill ->
         begin match word u with
-        | Extend | FO as word ->
+        | Extend | FO | ZWJ as word ->
             (* WB4 *)
             begin match slot_word s with
             | NL | CR | LF | Sot ->
@@ -168,9 +182,6 @@ let add s = function
         if not (r0_empty s) then r0_flush s else
         begin match r0_word s with
         | Invalid -> `End
-        | Eot ->
-            (* WB2 *)
-            if l0_word s = Sot then `End else (window_move s; `Boundary)
         | _ -> window_move s; decide s
         end
     | Fill -> `Await

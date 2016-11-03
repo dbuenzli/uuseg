@@ -19,6 +19,6 @@ let () =
   Ok [ Pkg.mllib ~api:["Uuseg"] "src/uuseg.mllib";
        Pkg.mllib ~cond:uutf "src/uuseg_string.mllib";
        Pkg.bin ~cond:(uutf && cmdliner) "test/usegtrip";
-       Pkg.test ~run:false "test/test";
+       Pkg.test "test/test";
        Pkg.test "test/examples";
        Pkg.doc "test/examples.ml"; ]
