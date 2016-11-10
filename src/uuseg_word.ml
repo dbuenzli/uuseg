@@ -74,7 +74,8 @@ type t =
     rbufs : Uuseg_buf.t array;(* buffers for slots on the right of boundary. *)
     mutable r0_bufs : int;      (* index of buffer for slot [r0] in [rbufs]. *)
     mutable rfill : int;                     (* index of right slot to fill. *)
-    mutable ri_pair : bool; }         (* [true] if boundary is on a RI pair. *)
+    mutable odd_ri : bool;      (* odd number of RI on the left of boundary. *)
+  }
 
 let create () =
   { state = Fill;
@@ -83,7 +84,7 @@ let create () =
     rbufs = [| Uuseg_buf.create 13; Uuseg_buf.create 13; |];
     r0_bufs = 0;
     rfill = -1;
-    ri_pair = true; }
+    odd_ri = false; }
 
 let copy s =
   let copy_rbuf i = Uuseg_buf.copy s.rbufs.(i) in
@@ -110,6 +111,7 @@ let window_move s =
   let wlen = Array.length s.window in
   if s.state = End then (s.window.((s.l0 + wlen / 2) mod wlen) <- Invalid);
   s.l0 <- (s.l0 + 1) mod wlen;
+  if s.window.(s.l0) = RI then s.odd_ri <- not s.odd_ri else s.odd_ri <- false;
   s.r0_bufs <- (s.r0_bufs + 1) mod Array.length s.rbufs;
   s.rfill <- s.rfill - 1
 
@@ -148,10 +150,8 @@ let decide s =
   | (* WB13a *) _, (LE|HL|NU|KA|EX), EX, _ -> no_boundary s
   | (* WB13b *) _, EX, (LE|HL|NU|KA), _ -> no_boundary s
   | (* WB14 *)  _, (EB|EBG),EM, _ -> no_boundary s
-  | (* WB15-16 *) _, RI, RI, _ when s.ri_pair ->
-      s.ri_pair <- false; no_boundary s
-  | (* WB999 *) _, _, _, _ ->
-      s.ri_pair <- true; `Boundary
+  | (* WB15-16 *) _, RI, RI, _ when s.odd_ri -> no_boundary s
+  | (* WB999 *) _, _, _, _ -> `Boundary
 
 let add s = function
 | `Uchar u as add ->
