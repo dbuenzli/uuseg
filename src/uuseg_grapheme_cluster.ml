@@ -7,91 +7,119 @@
 (* These are the rules as found in [1], with property values aliases [2]
    substituted.
 
-   GB1.        sot ÷
-   GB2.            ÷ eot
-   GB3.         CR × LF
-   GB4. (CN|CR|LF) ÷
-   GB5.            ÷ (CN|CR|LF)
-   GB6.          L × (L|V|LV|LVT)
-   GB7.     (LV|V) × (V|T)
-   GB8.    (LVT|T) × T
-   GB8a.        RI × RI
-   GB9.            × EX
-   GB9a.           × SM
-   GB9b.        PP ×
-   GB10.       Any ÷ Any
+   GB1.               sot ÷ Any
+   GB2.               Any ÷ eot
+   GB3.                CR × LF
+   GB4.        (CN|CR|LF) ÷
+   GB5.                   ÷ (CN|CR|LF)
+   GB6.                 L × (L|V|LV|LVT)
+   GB7.            (LV|V) × (V|T)
+   GB8.           (LVT|T) × T
+   GB9.                   × (EX|ZWJ)
+   GB9a.                  × SM
+   GB9b.               PP ×
+   GB10.     (EB|EBG) EX* × EM
+   GB11.              ZWJ × (GAZ|EBG)
+   GB12.  sot (RI RI)* RI × RI
+   GB13.   [^RI] (RI RI)* × RI
+   GB999.             Any ÷ Any
 
    [1]: http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries
    [2]: http://www.unicode.org/Public/7.0.0/ucd/PropertyValueAliases.txt
    [3]: http://www.unicode.org/Public/7.0.0/ucd/auxiliary/GraphemeBreakTest.html
 
    By the structure of the rules we see that grapheme clusters
-   boundaries can be determined by simply looking at the grapheme
-   cluster break property value of the character on the left and on
-   the right of a boundary. The table below expresses this, it was
-   derived manually from the rules and cross-checked with [3]. Rows
-   are the left hand side of the rule (i.e. left character) and
-   columns the right hand side (i.e. right character). GB2 and GB1
-   on the empty sequence is handled in code.
+   boundaries can *mostly* be determined by simply looking at the
+   grapheme cluster break property value of the character on the left
+   and on the right of a boundary. The exceptions are GB10 and GB12-13
+   which are handled specially by enriching the segmenter state in
+   a horribly ad-hoc fashion. *)
 
-   WARNING. The indexes used here need to be synchronized with those
+type gcb =
+  | CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
+  | SM | T | V | XX | ZWJ | Sot
+
+(* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.grapheme_cluster. *)
 
-type break_prop = int
-let sot = Uucp.Break.Low.grapheme_cluster_max + 1
-let eot = sot + 1
+let byte_to_gcb =
+  [| CN; CR; EX; EB; EBG; EM; GAZ; L; LF; LV; LVT; PP; RI;
+     SM; T; V; XX; ZWJ; |]
 
-let break =
-  let   o = true in  (* break *)
-  let __X = false in (* no break *)
-         [| (* CN; CR; EX;  L; LF; LV;LVT; PP; RI; SM;  T;  V; XX;*)
-  (* CN *)  [|  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;|];
-  (* CR *)  [|  o;  o;  o;  o;__X;  o;  o;  o;  o;  o;  o;  o;  o;|];
-  (* EX *)  [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;  o;  o;  o;|];
-  (* L  *)  [|  o;  o;__X;__X;  o;__X;__X;  o;  o;__X;  o;__X;  o;|];
-  (* LF *)  [|  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;|];
-  (* LV *)  [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;__X;__X;  o;|];
-  (* LVT *) [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;__X;  o;  o;|];
-  (* PP *)  [|__X;__X;__X;__X;__X;__X;__X;__X;__X;__X;__X;__X;__X;|];
-  (* RI *)  [|  o;  o;__X;  o;  o;  o;  o;  o;__X;__X;  o;  o;  o;|];
-  (* SM *)  [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;  o;  o;  o;|];
-  (* T *)   [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;__X;  o;  o;|];
-  (* V *)   [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;__X;__X;  o;|];
-  (* XX *)  [|  o;  o;__X;  o;  o;  o;  o;  o;  o;__X;  o;  o;  o;|];
-  (* sot *) [|  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;  o;|]|]
+let gcb u = byte_to_gcb.(Uucp.Break.Low.grapheme_cluster u)
 
 type state =
-  | Fill  (* get next uchar to decide boundary. *)
-  | Flush (* an uchar is buffered, client needs to get it out with `Await. *)
-  | End   (* `End was added. *)
+| Fill  (* get next uchar to decide boundary. *)
+| Flush (* an uchar is buffered, client needs to get it out with `Await. *)
+| End   (* `End was added. *)
 
 type t =
   { mutable state : state;                                 (* current state. *)
-    mutable left : break_prop;     (* break property value left of boundary. *)
+    mutable left : gcb;            (* break property value left of boundary. *)
+    mutable odd_ri : bool;                  (* odd number of RI on the left. *)
+    mutable emoji_seq : bool;               (* (EB|EBG) Extend* on the left. *)
     mutable buf : [ `Uchar of int ] }                     (* bufferized add. *)
 
-let create () = { state = Fill; left = sot; buf = `Uchar 0 (* overwritten *); }
+let nul_buf = `Uchar 0
+
+let create () =
+  { state = Fill; left = Sot;
+    odd_ri = false; emoji_seq = false;
+    buf = nul_buf (* overwritten *); }
+
 let copy s = { s with state = s.state; }
+
+let break s right = match s.left, right with
+| (* GB1 *)   Sot, _ -> true
+  (* GB2 is handled by `End *)
+| (* GB3 *)   CR, LF -> false
+| (* GB4 *)   (CN|CR|LF), _ -> true
+| (* GB5 *)   _, (CN|CR|LF) -> true
+| (* GB6 *)   L, (L|V|LV|LVT) -> false
+| (* GB7 *)   (LV|V), (V|T) -> false
+| (* GB8 *)   (LVT|T), T -> false
+| (* GB9+a *) _, (EX|ZWJ|SM) -> false
+| (* GB9b *)  PP, _ -> false
+| (* GB10 *)  _, EM when s.emoji_seq -> false
+| (* GB11 *)  ZWJ, (GAZ|EBG) -> false
+| (* GB12+13 *) RI, RI when s.odd_ri -> false
+| (* GB999 *) _, _ -> true
+
+let update_left s right =
+  s.left <- right;
+  begin match s.emoji_seq && s.left = EX with
+  | true -> ()
+  | false ->
+      match s.left with
+      | EB | EBG -> s.emoji_seq <- true;
+      | _ -> s.emoji_seq <- false
+  end;
+  begin match s.left = RI with
+  | false -> s.odd_ri <- false
+  | true -> s.odd_ri <- not s.odd_ri
+  end
+
 let add s = function
 | `Uchar u as add ->
     begin match s.state with
     | Fill ->
-        let right = Uucp.Break.Low.grapheme_cluster u in
-        if not break.(s.left).(right) then (s.left <- right; add) else
-        (s.left <- right; s.state <- Flush; s.buf <- add; `Boundary)
+        let right = gcb u in
+        let break = break s right in
+        update_left s right;
+        if not break then add else
+        (s.state <- Flush; s.buf <- add; `Boundary)
     | Flush -> Uuseg_base.err_exp_await add
     | End -> Uuseg_base.err_ended add
     end
 | `Await ->
     begin match s.state with
-    | Flush ->
-        s.state <- Fill; (s.buf :> Uuseg_base.ret)
+    | Flush -> s.state <- Fill; (s.buf :> Uuseg_base.ret)
     | End -> `End
     | Fill -> `Await
     end
 | `End ->
     begin match s.state with
-    | Fill -> s.state <- End; `Boundary  (* GB2 and GB1 on empty sequence *)
+    | Fill -> s.state <- End; if s.left = Sot then `End else `Boundary
     | Flush -> Uuseg_base.err_exp_await `End
     | End -> Uuseg_base.err_ended `End
     end
