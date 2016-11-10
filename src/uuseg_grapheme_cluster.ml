@@ -87,17 +87,11 @@ let break s right = match s.left, right with
 
 let update_left s right =
   s.left <- right;
-  begin match s.emoji_seq && s.left = EX with
-  | true -> ()
-  | false ->
-      match s.left with
-      | EB | EBG -> s.emoji_seq <- true;
-      | _ -> s.emoji_seq <- false
-  end;
-  begin match s.left = RI with
-  | false -> s.odd_ri <- false
-  | true -> s.odd_ri <- not s.odd_ri
-  end
+  match s.left with
+  | EX -> s.odd_ri <- false (* keep s.emoji_seq as is *)
+  | EB | EBG -> s.emoji_seq <- true; s.odd_ri <- false
+  | RI -> s.emoji_seq <- false; s.odd_ri <- not s.odd_ri
+  | _ -> s.emoji_seq <- false; s.odd_ri <- false
 
 let add s = function
 | `Uchar u as add ->
