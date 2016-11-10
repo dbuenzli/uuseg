@@ -242,12 +242,12 @@ let test_conformance seg name ignores inf =
 
 let test_others () =
   let g = `Grapheme_cluster in
-  test g [] [`B;];
+  test g [] [];
   test g [0x0020] [`B; `U 0x0020; `B;];
   test g (* éa *) [0x0065; 0x0301; 0x0061;]
     [`B; `U 0x0065; `U 0x0301; `B; `U 0x0061; `B;];
   let w = `Word in
-  test w [] [`B;];
+  test w [] [];
   let s = `Sentence in
   test s [] [];
   let l = `Line_break in
