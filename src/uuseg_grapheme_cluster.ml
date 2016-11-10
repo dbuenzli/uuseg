@@ -88,7 +88,7 @@ let break s right = match s.left, right with
 let update_left s right =
   s.left <- right;
   match s.left with
-  | EX -> s.odd_ri <- false (* keep s.emoji_seq as is *)
+  | EX -> (* keep s.emoji_seq as is *) s.odd_ri <- false
   | EB | EBG -> s.emoji_seq <- true; s.odd_ri <- false
   | RI -> s.emoji_seq <- false; s.odd_ri <- not s.odd_ri
   | _ -> s.emoji_seq <- false; s.odd_ri <- false
