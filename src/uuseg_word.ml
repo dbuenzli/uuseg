@@ -70,6 +70,7 @@ type state =
 type t =
   { mutable state : state;                                 (* current state. *)
     window : word array;                                    (* break window. *)
+    window_is_zwj : bool array;                     (* for WB3c despite WB4. *)
     mutable l0 : int;                            (* index in [window] of l0. *)
     rbufs : Uuseg_buf.t array;(* buffers for slots on the right of boundary. *)
     mutable r0_bufs : int;      (* index of buffer for slot [r0] in [rbufs]. *)
@@ -80,6 +81,7 @@ type t =
 let create () =
   { state = Fill;
     window = [|Invalid; Sot; Invalid; Invalid|];
+    window_is_zwj = [| false; false; false; false|];
     l0 = 1;
     rbufs = [| Uuseg_buf.create 13; Uuseg_buf.create 13; |];
     r0_bufs = 0;
@@ -96,7 +98,11 @@ let slot_add s add =
   Uuseg_buf.add s.rbufs.((s.r0_bufs + s.rfill) mod Array.length s.rbufs) add
 
 let slot_set s word =
-  s.window.((s.l0 + s.rfill + 1) mod Array.length s.window) <- word
+  let i = (s.l0 + s.rfill + 1) mod Array.length s.window in
+  s.window.(i) <- word; s.window_is_zwj.(i) <- (word = ZWJ)
+
+let slot_set_is_zwj s is_zwj =
+  s.window_is_zwj.((s.l0 + s.rfill + 1) mod Array.length s.window) <- is_zwj
 
 let slot_word s = (* N.B. this will lookup sot in l0 on the first add *)
   s.window.((s.l0 + s.rfill + 1) mod Array.length s.window)
@@ -133,7 +139,7 @@ let decide s =
   | (* WB3 *)   _, CR, LF, _ -> no_boundary s
   | (* WB3a *)  _, (NL|CR|LF), _, _ -> `Boundary
   | (* WB3b *)  _, _, (NL|CR|LF), _ -> `Boundary
-  | (* WB3c *)  _, ZWJ,(GAZ|EBG), _ -> no_boundary s
+  | (* WB3c *)  _, _,(GAZ|EBG), _ when s.window_is_zwj.(l0) -> no_boundary s
   (* WB4 is handled indirectly during Fill *)
   | (* WB5 *)   _, (LE|HL), (LE|HL), _ -> no_boundary s
   | (* WB6 *)   _, (LE|HL), (ML|MB|SQ), (LE|HL) -> no_boundary s
@@ -164,7 +170,9 @@ let add s = function
             | NL | CR | LF | Sot ->
                 new_slot s; slot_set s word; slot_add s add;
                 if decidable s then (s.state <- Flush; decide s) else `Await
-            | _ -> slot_add s add; `Await
+            | _ ->
+                slot_set_is_zwj s (word = ZWJ);
+                slot_add s add; `Await
             end
         | word ->
             new_slot s; slot_set s word; slot_add s add;
