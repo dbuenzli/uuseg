@@ -42,8 +42,11 @@ let stack_to_loc stack =                                         (* Grrrrr. *)
 
 let rec pp_spec ppf = function
 | [] -> ()
-| `B :: spec -> Format.fprintf ppf "%s" "÷ "; pp_spec ppf spec
-| `U u :: spec -> Format.fprintf ppf "%04X " u; pp_spec ppf spec
+| `B :: spec -> Format.fprintf ppf "÷ "; pp_spec ppf spec
+| `U u :: spec ->
+    Format.fprintf ppf "%04X " u;
+    (match spec with (`U _) :: _ -> Format.fprintf ppf "× " | _ -> ());
+    pp_spec ppf spec
 
 let pp_boundary ppf = function
 | `Grapheme_cluster -> Format.fprintf ppf "grapheme cluster:"
@@ -214,6 +217,12 @@ let line_break_ignores =
    "tailoring, violates LB25.12";
    [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x3000; `B; `U 0x300C; `B ],
    "tailoring, violates LB25.12";
+   [ `U 0x0063; `U 0x006F; `U 0x0064; `U 0x0065; `U 0x005C; `B; `U 0x0028;
+     `U 0x0073; `U 0x005C; `U 0x0029; `B ],
+   "tailoring, violates PR × OP of LB25";
+   [ `U 0x0063; `U 0x006F; `U 0x0064; `U 0x0065; `U 0x005C; `B; `U 0x007B;
+     `U 0x0073; `U 0x005C; `U 0x007D; `B],
+   "tailoring, violates PR × OP of LB25";
   ]
 
 let rec seq_of_spec acc = function

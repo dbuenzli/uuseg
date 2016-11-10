@@ -18,8 +18,9 @@
    LB6                                × (BK|CR|LF|NL)
    LB7                                × (SP|ZW)
    LB8                         ZW SP* ÷
-   LB9  ¬(BK|CR|LF|NL|SP|ZW as X) CM* → X
-   LB10                            CM → AL
+   LB8a                           ZWJ × (ID|EB|EM)
+   LB9  ¬(BK|CR|LF|NL|SP|ZW as X) (CM|ZWJ) * → X
+   LB10                      (CM|ZWJ) → AL
    LB11                               × WJ
                                    WJ ×
    LB12                            GL ×
@@ -38,12 +39,13 @@
                                    BB ×
    LB21a                   HL (HY|BA) ×
    LB21b                           SY × HL
-   LB22           (AL|HL|EX|ID|IN|NU) × IN
-   LB23                            ID × PO
-                              (AL|HL) × NU
+   LB22     (AL|HL|EX|ID|EB|EM|IN|NU) × IN
+   LB23                       (AL|HL) × NU
                                    NU × (AL|HL)
-   LB24                            PR × ID
-                              (PR|PO) × (AL|HL)
+   LB23a                           PR × (ID|EB|EM)
+                           (ID|EB|EM) × PO
+   LB24                       (PR|PO) × (AL|HL)
+                              (AL|HL) × (PR|PO)
    LB25                    (CL|CP|NU) × (PO|PR)
                               (PO|PR) × OP
                   (PO|PR|HY|IS|NU|SY) × NU
@@ -56,7 +58,9 @@
    LB29                            IS × (AL|HL)
    LB30                    (AL|HL|NU) × OP
                                    CP × (AL|HL|NU)
-   LB30a                           RI × RI
+   LB30a              sot (RI RI)* RI × RI
+                    [^RI] (RI RI)* RI × RI
+   LB30b                           EB × EM
    LB31                           ALL ÷
                                       ÷ ALL
 
@@ -76,18 +80,19 @@
    already returned to client /  \ buffered in segmenter *)
 
 type line =
-  | AI | AL | B2 | BA | BB | BK | CB | CJ | CL | CM | CP | CR | EX | GL | H2
-  | H3 | HL | HY | ID | IN | IS | JL | JT | JV | LF | NL | NS | NU | OP | PO
-  | PR | QU | RI | SA | SG | SP | SY | WJ | XX | ZW | Invalid | Sot | Eot
+  | AI | AL | B2 | BA | BB | BK | CB | CJ | CL | CM | CP
+  | CR | EX | EB | EM | GL | H2 | H3 | HL | HY | ID | IN
+  | IS | JL | JT | JV | LF | NL | NS | NU | OP | PO | PR
+  | QU | RI | SA | SG | SP | SY | WJ | XX | ZW | ZWJ | Invalid | Sot | Eot
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.line_break. *)
 
 let byte_to_line =
   [| AL (* LB1 AI → AL *); AL; B2; BA; BB; BK; CB; NS (* LB1 CJ → NS *); CL;
-     CM; CP; CR; EX; GL; H2; H3; HL; HY; ID; IN; IS; JL; JT; JV; LF; NL; NS;
-     NU; OP; PO; PR; QU; RI; SA; AL (* LB1 SG → AL *); SP; SY; WJ;
-     AL (* LB1 XX → AL *); ZW |]
+     CM; CP; CR; EX; EB; EM; GL; H2; H3; HL; HY; ID; IN; IS; JL; JT; JV; LF;
+     NL; NS; NU; OP; PO; PR; QU; RI; SA; AL (* LB1 SG → AL *); SP; SY; WJ;
+     AL (* LB1 XX → AL *); ZW; ZWJ |]
 
 let line u = match byte_to_line.(Uucp.Break.Low.line u) with
 | SA ->
@@ -108,6 +113,9 @@ type t =
     window : line array;                                    (* break window. *)
     mutable l0 : int;                            (* index in [window] of l0. *)
     r0_buf : Uuseg_buf.t;                                  (* buffer for r0. *)
+    mutable odd_ri : bool;      (* odd number of RI on the left of boundary. *)
+    mutable r0_is_zwj : bool;                         (* for LB8a r0 is ZWJ. *)
+    mutable l0_is_zwj : bool;                         (* for LB8a l0 is ZWJ. *)
     mutable mandatory : bool; }             (* [true] if break is mandatory. *)
 
 let create () =
@@ -115,6 +123,9 @@ let create () =
     window = [|Invalid; Sot; Invalid; |];
     l0 = 1;
     r0_buf = Uuseg_buf.create 13;
+    odd_ri = false;
+    r0_is_zwj = false;
+    l0_is_zwj = false;
     mandatory = false; }
 
 let copy s =
@@ -123,13 +134,18 @@ let copy s =
 
 let l0_line s = s.window.(s.l0)
 let r0_line s = s.window.((s.l0 + 1) mod Array.length s.window)
-let r0_line_set s l = s.window.((s.l0 + 1) mod Array.length s.window) <- l
+let r0_line_set s l =
+  s.window.((s.l0 + 1) mod Array.length s.window) <- l;
+  s.r0_is_zwj <- false
+
 let r0_add s add = Uuseg_buf.add s.r0_buf add
 let r0_empty s = Uuseg_buf.empty s.r0_buf
 let r0_len s = Uuseg_buf.len s.r0_buf
 let r0_flush s = Uuseg_buf.flush s.r0_buf
 let window_move s =
   s.l0 <- (s.l0 + 1) mod Array.length s.window;
+  if s.window.(s.l0) = RI then s.odd_ri <- not s.odd_ri else s.odd_ri <- false;
+  s.l0_is_zwj <- s.r0_is_zwj;
   r0_line_set s Invalid
 
 let decide s =
@@ -151,6 +167,7 @@ let decide s =
   | (* LB6 *)   _, _, (BK|CR|LF|NL) -> no_boundary s
   | (* LB7 is partly handled in [add] *)   _, _, (SP|ZW) -> no_boundary s
   | (* LB8 the SP* is handled in [add] *)  _, ZW, _ -> `Boundary
+  | (* LB8a *) _, _, (ID|EB|EM) when s.l0_is_zwj -> no_boundary s
   (* LB9 is handled in [add]. *)
   (* LB10 is handled in [add]. *)
   | (* LB11 *)  _, _, WJ -> no_boundary s
@@ -171,12 +188,13 @@ let decide s =
   |             _, BB, _ -> no_boundary s
   | (* LB21a *) HL, (BA|HY), _ -> no_boundary s
   | (* LB21b *) _, SY, HL -> no_boundary s
-  | (* LB22 *)  _, (AL|HL|EX|ID|IN|NU), IN -> no_boundary s
-  | (* LB23 *)  _, ID, PO -> no_boundary s
-  |             _, (AL|HL), NU -> no_boundary s
+  | (* LB22 *)  _, (AL|HL|EX|ID|EB|EM|IN|NU), IN -> no_boundary s
+  | (* LB23 *)  _, (AL|HL), NU -> no_boundary s
   |             _, NU, (AL|HL) -> no_boundary s
-  | (* LB24 *)  _, PR, ID -> no_boundary s
-  |             _, (PR|PO), (AL|HL) -> no_boundary s
+  | (* LB23a *) _, PR, (ID|EB|EM) -> no_boundary s
+  |             _, (ID|EB|EM), PO -> no_boundary s
+  | (* LB24 *)  _, (PR|PO), (AL|HL) -> no_boundary s
+  |             _, (AL|HL), (PR|PO) -> no_boundary s
   | (* LB25 *)  _, (CL|CP|NU), (PO|PR) -> no_boundary s
   |             _, (PO|PR), OP -> no_boundary s
   |             _, (PO|PR|HY|IS|NU|SY), NU -> no_boundary s
@@ -189,23 +207,29 @@ let decide s =
   | (* LB29 *)  _, IS, (AL|HL) -> no_boundary s
   | (* LB30 *)  _, (AL|HL|NU), OP -> no_boundary s
   |             _, CP, (AL|HL|NU) -> no_boundary s
-  | (* LB30a *) _, RI, RI -> no_boundary s
+  | (* LB30a *) _, RI, RI when s.odd_ri -> no_boundary s
+  | (* LB30b *) _, EB, EM -> no_boundary s
   | (* LB31 *)  _, _, _ -> `Boundary
 
-let flush_SP line add s =
-  s.state <- Flush_SP; r0_line_set s line; r0_add s add; r0_flush s
+let flush_SP line r0_is_zwj add s =
+  s.state <- Flush_SP; r0_line_set s line; s.r0_is_zwj <- r0_is_zwj;
+  r0_add s add; r0_flush s
 
 let add s = function
 | `Uchar u as add ->
     begin match s.state with
     | Fill ->
         begin match line u with
-        | CM ->
-            if r0_line s = SP then flush_SP AL add s (* LB10 *) else
+        | (CM|ZWJ as b) ->
+            if r0_line s = SP then flush_SP AL (b = ZWJ) add s (* LB10 *) else
             begin match l0_line s with
             | BK | CR | LF | NL | SP | ZW | Sot -> (* LB10 *)
-                s.state <- Flush; r0_line_set s AL; r0_add s add; decide s
-            | _ -> add (* LB9 *)
+                s.state <- Flush;
+                r0_line_set s AL; s.r0_is_zwj <- (b = ZWJ);
+                r0_add s add; decide s
+            | _ ->
+                s.l0_is_zwj <- (b = ZWJ);
+                add (* LB9 *)
             end
         | SP ->
             if r0_line s = SP then ((* bufferize *) r0_add s add; `Await) else
@@ -223,7 +247,7 @@ let add s = function
             else begin match l0_line s, line with
             | QU, OP (* LB15 *) | (CL|CP), NS (* LB16 *) | B2, B2 (* LB17 *) ->
                 s.state <- Flush; r0_line_set s line; r0_add s add; r0_flush s
-            | _ -> flush_SP line add s
+            | _ -> flush_SP line false add s
             end
         end
     | Flush | Flush_SP -> Uuseg_base.err_exp_await add
@@ -248,8 +272,8 @@ let add s = function
     | Fill ->
         s.state <- End;
         if s.window.(s.l0) = Sot then `End (* LB2 on empty seq. *) else
-        if r0_line s = SP then flush_SP Eot (`Uchar 0x0000 (* dummy *)) s else
-        (s.mandatory <- true; `Boundary) (* LB3 *)
+        if r0_line s = SP then flush_SP Eot false (`Uchar 0x0000 (* dummy *)) s
+        else (s.mandatory <- true; `Boundary) (* LB3 *)
     | Flush | Flush_SP -> Uuseg_base.err_exp_await `End
     | End -> Uuseg_base.err_ended `End
     end
