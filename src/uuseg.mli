@@ -37,23 +37,10 @@
        break utility}.}}
 *)
 
-(** {1 Unicode characters} *)
-
-type uchar = int
-(** The type for Unicode characters. A value of this type {b must}
-    be an Unicode
-    {{:http://www.unicode.org/glossary/#unicode_scalar_value}scalar value}
-    which is an integer value in the ranges [0x0000]...[0xD7FF] and
-    [0xE000]...[0x10FFFF]. *)
-
-val is_uchar : int -> bool
-(** [is_uchar cp] is [true] iff [cp] is an Unicode
-    {{:http://www.unicode.org/glossary/#Unicode_scalar_value}scalar value}. *)
+(** {1 Segment} *)
 
 val unicode_version : string
 (** [unicode_version] is the Unicode version supported by [Uuseg]. *)
-
-(** {1 Segment} *)
 
 type custom
 (** The type for custom segmenters. See {!val:custom}. *)
@@ -78,7 +65,7 @@ val pp_boundary : Format.formatter -> boundary -> unit
 type t
 (** The type for Unicode text segmenters. *)
 
-type ret = [ `Boundary | `Uchar of uchar | `Await | `End ]
+type ret = [ `Boundary | `Uchar of Uchar.t | `Await | `End ]
 (** The type for segmenter results. See {!add}. *)
 
 val create : [< boundary ] -> t
@@ -87,7 +74,7 @@ val create : [< boundary ] -> t
 val boundary : t -> boundary
 (** [boundary s] is the type of boundaries detected by [s]. *)
 
-val add : t -> [ `Uchar of uchar | `Await | `End ] -> ret
+val add : t -> [ `Uchar of Uchar.t | `Await | `End ] -> ret
 (** [add s v] is:
     {ul
     {- [`Boundary] if there is a boundary at that point in the sequence of
@@ -108,12 +95,7 @@ val add : t -> [ `Uchar of uchar | `Await | `End ] -> ret
 
     @raise Invalid_argument if [`Uchar] or [`End] is added while
     that last add did not return [`Await] or if an [`Uchar] or [`End]
-    is added after an [`End] was already added.
-
-    {b Warning.} [add] deals with Unicode
-    {{:http://www.unicode.org/glossary/#unicode_scalar_value}
-    scalar values}. If you are handling foreign data you must assert
-    that before with {!is_uchar}. *)
+    is added after an [`End] was already added. *)
 
 val mandatory : t -> bool
 (** [mandatory s] is [true] if the last [`Boundary] returned by {!add}
@@ -136,7 +118,7 @@ val custom :
   name:string ->
   create:(unit -> 'a) ->
   copy:('a -> 'a) ->
-  add: ('a -> [ `Uchar of uchar | `Await | `End ] -> ret) -> unit -> custom
+  add: ('a -> [ `Uchar of Uchar.t | `Await | `End ] -> ret) -> unit -> custom
   (** [create ~mandatory ~name ~create ~copy ~add] is a custom segmenter.
       {ul
       {- [name] is a name to identify the segmenter.}
@@ -203,7 +185,8 @@ let rec add acc v = match Uuseg.add words v with
     (["a b"]) to a list of characters interleaved with [`B] values on word
     boundaries we can write:
 {[
-let seq = [`Uchar 0x0041; `Uchar 0x0020; `Uchar 0x0042]
+let uchar = `Uchar (Uchar.of_int u)
+let seq = [uchar 0x0041; uchar 0x0020; uchar 0x0042]
 let seq_words = List.rev (add (List.fold_left add [] seq) `End)
 ]}
 *)
@@ -213,7 +196,8 @@ let seq_words = List.rev (add (List.fold_left add [] seq) `End)
 [utf_8_segments seg s] is the list of UTF-8 encoded [seg] segments of
 the UTF-8 encoded string [s]. This example uses {!Uutf} to fold over
 the characters of [s] and to encode the characters in a standard
-OCaml buffer .
+OCaml buffer. Note that this function can be derived directly from
+{!Uuseg_string.fold_utf_8}.
 {[
 let utf_8_segments seg s =
   let b = Buffer.create 42 in
@@ -233,9 +217,7 @@ let utf_8_segments seg s =
   in
   List.rev (flush_segment (add (Uutf.String.fold_utf_8 uchar [] s) `End))
 ]}
-Note that this function can derived directly from {!Uuseg_string.fold_utf_8}.
 *)
-
 
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 Daniel C. Bünzli

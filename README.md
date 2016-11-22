@@ -48,7 +48,9 @@ If you installed Uuseg with `opam` sample programs are located in
 the directory `opam config var uuseg:doc`.
 
 In the distribution sample programs are located in the `test`
-directory of the distribution.
+directory of the distribution, they can be built with:
+
+   topkg build --tests true
 
 - `test.native` tests the library, nothing should fail.
 - `usegtrip.native` inputs Unicode text on `stdin` and rewrites

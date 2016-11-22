@@ -8,7 +8,7 @@
 
 (** {1 Common} *)
 
-type ret = [ `Await | `Boundary | `End | `Uchar of int ]
+type ret = [ `Await | `Boundary | `End | `Uchar of Uchar.t ]
 (** See {!Uuseg.ret}. *)
 
 val pp_ret : Format.formatter -> [< ret ] -> unit

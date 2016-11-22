@@ -44,7 +44,7 @@ let rec pp_spec ppf = function
 | [] -> ()
 | `B :: spec -> Format.fprintf ppf "÷ "; pp_spec ppf spec
 | `U u :: spec ->
-    Format.fprintf ppf "%04X " u;
+    Format.fprintf ppf "%04X " (Uchar.to_int u);
     (match spec with (`U _) :: _ -> Format.fprintf ppf "× " | _ -> ());
     pp_spec ppf spec
 
@@ -127,8 +127,8 @@ let decode_conformance_specs ignores ic =
                   to_spec (`B :: acc) rest
               | uchar :: rest ->
                   let u = cp_of_string uchar in
-                  if not (Uuseg.is_uchar u) then raise Exit else
-                  to_spec (`U (cp_of_string uchar) :: acc) rest
+                  if not (Uchar.is_valid u) then raise Exit else
+                  to_spec (`U (Uchar.of_int u) :: acc) rest
               | [] ->
                   List.rev acc
               in
@@ -157,71 +157,72 @@ let line_break_ignores =
   (* Conformance tests of line breaking algorithm implement a tailoring
      that we don't implement. Here are the tests break according
      to that tailoring. *)
-  [[`U 0x007D; `B; `U 0x0025; `B], "tailoring, violates LB25.1";
-   [`U 0x007D; `U 0x0308; `B; `U 0x0025; `B], "tailoring, violates LB25.1";
-   [`U 0x007D; `B; `U 0x0024; `B], "tailoring, violates LB25.3";
-   [`U 0x007D; `U 0x0308; `B; `U 0x0024; `B], "tailoring, violates LB24.3";
+  let u u = `U (Uchar.of_int u) in
+  [[u 0x007D; `B; u 0x0025; `B], "tailoring, violates LB25.1";
+   [u 0x007D; u 0x0308; `B; u 0x0025; `B], "tailoring, violates LB25.1";
+   [u 0x007D; `B; u 0x0024; `B], "tailoring, violates LB25.3";
+   [u 0x007D; u 0x0308; `B; u 0x0024; `B], "tailoring, violates LB24.3";
    (* *)
-   [`U 0x0029; `B; `U 0x0025; `B], "tailoring, violates LB25.2";
-   [`U 0x0029; `U 0x0308; `B; `U 0x0025; `B], "tailoring, violates LB25.2";
-   [`U 0x0029; `B; `U 0x0024; `B], "tailoring, violates LB25.4";
-   [`U 0x0029; `U 0x0308; `B; `U 0x0024; `B], "tailoring, violates LB24.4";
+   [u 0x0029; `B; u 0x0025; `B], "tailoring, violates LB25.2";
+   [u 0x0029; u 0x0308; `B; u 0x0025; `B], "tailoring, violates LB25.2";
+   [u 0x0029; `B; u 0x0024; `B], "tailoring, violates LB25.4";
+   [u 0x0029; u 0x0308; `B; u 0x0024; `B], "tailoring, violates LB24.4";
    (* *)
-   [`U 0x002C; `B; `U 0x0030; `B], "tailoring, violates LB25.12";
-   [`U 0x002C; `U 0x0308; `B; `U 0x0030; `B], "tailoring, violates LB25.12";
+   [u 0x002C; `B; u 0x0030; `B], "tailoring, violates LB25.12";
+   [u 0x002C; u 0x0308; `B; u 0x0030; `B], "tailoring, violates LB25.12";
    (* *)
-   [`U 0x0025; `B; `U 0x0028; `B], "tailoring, violates LB25.7";
-   [`U 0x0025; `U 0x0308; `B; `U 0x0028; `B], "tailoring, violates LB25.7";
+   [u 0x0025; `B; u 0x0028; `B], "tailoring, violates LB25.7";
+   [u 0x0025; u 0x0308; `B; u 0x0028; `B], "tailoring, violates LB25.7";
    (* *)
-   [`U 0x0024; `B; `U 0x0028; `B], "tailoring, violates LB25.9";
-   [`U 0x0024; `U 0x0308; `B; `U 0x0028; `B], "tailoring, violates LB25.9";
+   [u 0x0024; `B; u 0x0028; `B], "tailoring, violates LB25.9";
+   [u 0x0024; u 0x0308; `B; u 0x0028; `B], "tailoring, violates LB25.9";
    (* *)
-   [`U 0x002F; `B; `U 0x0030; `B], "tailoring, violates LB25.14";
-   [`U 0x002F; `U 0x0308; `B; `U 0x0030; `B], "tailoring, violates LB25.14";
+   [u 0x002F; `B; u 0x0030; `B], "tailoring, violates LB25.14";
+   [u 0x002F; u 0x0308; `B; u 0x0030; `B], "tailoring, violates LB25.14";
    (* *)
-   [ `U 0x0065; `U 0x0071; `U 0x0075; `U 0x0061; `U 0x006C; `U 0x0073;
-     `U 0x0020; `U 0x002E; `B; `U 0x0033; `U 0x0035; `U 0x0020; `B; `U 0x0063;
-     `U 0x0065; `U 0x006E; `U 0x0074; `U 0x0073; `B ],
+   [ u 0x0065; u 0x0071; u 0x0075; u 0x0061; u 0x006C; u 0x0073;
+     u 0x0020; u 0x002E; `B; u 0x0033; u 0x0035; u 0x0020; `B; u 0x0063;
+     u 0x0065; u 0x006E; u 0x0074; u 0x0073; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0063; `U 0x006F; `U 0x0064; `U 0x0065; `B; `U 0x005C; `B;
-     `U 0x0028; `U 0x0073; `B; `U 0x005C; `U 0x0029; `B ],
+   [ u 0x0063; u 0x006F; u 0x0064; u 0x0065; `B; u 0x005C; `B;
+     u 0x0028; u 0x0073; `B; u 0x005C; u 0x0029; `B ],
    "tailoring, violates LB25.9";
-   [ `U 0x0063; `U 0x006F; `U 0x0064; `U 0x0065; `B; `U 0x005C; `B; `U 0x007B;
-     `U 0x0073; `B; `U 0x005C; `U 0x007D; `B ],
+   [ u 0x0063; u 0x006F; u 0x0064; u 0x0065; `B; u 0x005C; `B; u 0x007B;
+     u 0x0073; `B; u 0x005C; u 0x007D; `B ],
    "tailoring, violates LB25.9";
    (* *)
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x0020; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x0020; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x0020; `B; `U 0x672C; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x0020; `B; u 0x672C; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x0020; `B; `U 0x0915; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x0020; `B; u 0x0915; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x0020; `B; `U 0xBABB; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x0020; `B; u 0xBABB; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x3000; `B; `U 0x672C; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x3000; `B; u 0x672C; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x3000; `B; `U 0x307E; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x3000; `B; u 0x307E; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x3000; `B; `U 0x0033; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x3000; `B; u 0x0033; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0041; `U 0x002E; `B; `U 0x0031; `U 0x0020; `B; `U 0xBABB; `B ],
+   [ u 0x0041; u 0x002E; `B; u 0x0031; u 0x0020; `B; u 0xBABB; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0xBD24; `B; `U 0xC5B4; `U 0x002E; `U 0x0020; `B; `U 0x0041; `U 0x002E;
-     `B; `U 0x0032; `U 0x0020; `B; `U 0xBCFC; `B ],
+   [ u 0xBD24; `B; u 0xC5B4; u 0x002E; u 0x0020; `B; u 0x0041; u 0x002E;
+     `B; u 0x0032; u 0x0020; `B; u 0xBCFC; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0xBD10; `B; `U 0xC694; `U 0x002E; `U 0x0020; `B; `U 0x0041; `U 0x002E;
-     `B; `U 0x0033; `U 0x0020; `B; `U 0xBABB; `B ],
+   [ u 0xBD10; `B; u 0xC694; u 0x002E; u 0x0020; `B; u 0x0041; u 0x002E;
+     `B; u 0x0033; u 0x0020; `B; u 0xBABB; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0xC694; `U 0x002E; `U 0x0020; `B; `U 0x0041; `U 0x002E; `B; `U 0x0034;
-     `U 0x0020; `B; `U 0xBABB; `B ],
+   [ u 0xC694; u 0x002E; u 0x0020; `B; u 0x0041; u 0x002E; `B; u 0x0034;
+     u 0x0020; `B; u 0xBABB; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0061; `U 0x002E; `B; `U 0x0032; `U 0x3000; `B; `U 0x300C; `B ],
+   [ u 0x0061; u 0x002E; `B; u 0x0032; u 0x3000; `B; u 0x300C; `B ],
    "tailoring, violates LB25.12";
-   [ `U 0x0063; `U 0x006F; `U 0x0064; `U 0x0065; `U 0x005C; `B; `U 0x0028;
-     `U 0x0073; `U 0x005C; `U 0x0029; `B ],
+   [ u 0x0063; u 0x006F; u 0x0064; u 0x0065; u 0x005C; `B; u 0x0028;
+     u 0x0073; u 0x005C; u 0x0029; `B ],
    "tailoring, violates PR × OP of LB25";
-   [ `U 0x0063; `U 0x006F; `U 0x0064; `U 0x0065; `U 0x005C; `B; `U 0x007B;
-     `U 0x0073; `U 0x005C; `U 0x007D; `B],
+   [ u 0x0063; u 0x006F; u 0x0064; u 0x0065; u 0x005C; `B; u 0x007B;
+     u 0x0073; u 0x005C; u 0x007D; `B],
    "tailoring, violates PR × OP of LB25";
   ]
 
@@ -240,12 +241,14 @@ let test_conformance seg name ignores inf =
     close_in ic
   with Sys_error e -> log "%s\n" e; incr fail
 
+let uchar = Uchar.of_int
+
 let test_others () =
   let g = `Grapheme_cluster in
   test g [] [];
-  test g [0x0020] [`B; `U 0x0020; `B;];
-  test g (* éa *) [0x0065; 0x0301; 0x0061;]
-    [`B; `U 0x0065; `U 0x0301; `B; `U 0x0061; `B;];
+  test g [uchar 0x0020] [`B; `U (uchar 0x0020); `B;];
+  test g (* éa *) [uchar 0x0065; uchar 0x0301; uchar 0x0061;]
+    [`B; `U (uchar 0x0065); `U (uchar 0x0301); `B; `U (uchar 0x0061); `B;];
   let w = `Word in
   test w [] [];
   let s = `Sentence in

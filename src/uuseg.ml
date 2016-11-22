@@ -4,10 +4,7 @@
    %%NAME%% %%VERSION%%
   ---------------------------------------------------------------------------*)
 
-(* Unicode characters *)
 
-type uchar = int
-let is_uchar i = (0x0000 <= i && i <= 0xD7FF) || (0xE000 <= i && i <= 0x10FFFF)
 let unicode_version = Uucp.unicode_version
 
 (* Segmenters *)
@@ -17,8 +14,8 @@ type 'a segmenter =
     create : unit -> 'a;
     copy : 'a -> 'a;
     mandatory : 'a -> bool;
-    add : 'a -> [ `Uchar of uchar | `Await | `End ] ->
-      [ `Boundary | `Uchar of uchar | `Await | `End ] }
+    add : 'a -> [ `Uchar of Uchar.t | `Await | `End ] ->
+      [ `Boundary | `Uchar of Uchar.t | `Await | `End ] }
 
 type custom = C : 'a segmenter -> custom
 

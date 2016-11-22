@@ -1,6 +1,6 @@
 description = "Unicode text segmentation for OCaml"
 version = "%%VERSION%%"
-requires = "uucp"
+requires = "uchar uucp"
 archive(byte) = "uuseg.cma"
 archive(native) = "uuseg.cmxa"
 plugin(byte) = "uuseg.cma"

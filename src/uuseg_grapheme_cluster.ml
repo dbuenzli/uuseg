@@ -58,9 +58,9 @@ type t =
     mutable left : gcb;            (* break property value left of boundary. *)
     mutable odd_ri : bool;                  (* odd number of RI on the left. *)
     mutable emoji_seq : bool;               (* (EB|EBG) Extend* on the left. *)
-    mutable buf : [ `Uchar of int ] }                     (* bufferized add. *)
+    mutable buf : [ `Uchar of Uchar.t ] }                 (* bufferized add. *)
 
-let nul_buf = `Uchar 0
+let nul_buf = `Uchar (Uchar.unsafe_of_int 0x0000)
 
 let create () =
   { state = Fill; left = Sot;

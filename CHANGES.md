@@ -1,4 +1,11 @@
 
+
+- OCaml standard library `Uchar.t` support.
+  - Removes and substitutes `type Uuseg.uchar = int` by the (abstract)
+    `Uchar.t` type. `Uchar.{of,to}_int` allows to recover the previous
+    representation.
+  - Removes the `Uuseg.is_uchar`. `Uchar.is_valid` can be used instead.
+- Safe-string support.
 - Build depend on topkg.
 - Relicense from BSD3 to ISC.
 

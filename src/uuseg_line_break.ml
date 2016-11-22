@@ -118,6 +118,8 @@ type t =
     mutable l0_is_zwj : bool;                         (* for LB8a l0 is ZWJ. *)
     mutable mandatory : bool; }             (* [true] if break is mandatory. *)
 
+let u_dummy = `Uchar (Uchar.unsafe_of_int 0x0000)
+
 let create () =
   { state = Fill;
     window = [|Invalid; Sot; Invalid; |];
@@ -272,7 +274,7 @@ let add s = function
     | Fill ->
         s.state <- End;
         if s.window.(s.l0) = Sot then `End (* LB2 on empty seq. *) else
-        if r0_line s = SP then flush_SP Eot false (`Uchar 0x0000 (* dummy *)) s
+        if r0_line s = SP then flush_SP Eot false u_dummy s
         else (s.mandatory <- true; `Boundary) (* LB3 *)
     | Flush | Flush_SP -> Uuseg_base.err_exp_await `End
     | End -> Uuseg_base.err_ended `End

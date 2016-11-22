@@ -23,10 +23,10 @@ val empty : t -> bool
 val len : t -> int
 (** [len b] is [b]'s length. *)
 
-val add : t -> [`Uchar of int] -> unit
+val add : t -> [`Uchar of Uchar.t] -> unit
 (** [add b u] adds [u] at the end of [b]. *)
 
-val flush : t -> [> `Uchar of int ]
+val flush : t -> [> `Uchar of Uchar.t ]
 (** [flush b] is the first [`Uchar] of [b] and removes it from [b]. *)
 
 (*---------------------------------------------------------------------------

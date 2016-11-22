@@ -4,13 +4,13 @@
    %%NAME%% %%VERSION%%
   ---------------------------------------------------------------------------*)
 
-type ret = [ `Await | `Boundary | `End | `Uchar of int ]
+type ret = [ `Await | `Boundary | `End | `Uchar of Uchar.t ]
 
 let pp_ret ppf v = match (v :> ret) with
 | `Await -> Format.fprintf ppf "`Await"
 | `Boundary -> Format.fprintf ppf "`Boundary"
 | `End -> Format.fprintf ppf "`End"
-| `Uchar u -> Format.fprintf ppf "`Uchar %04X" u
+| `Uchar u -> Format.fprintf ppf "`Uchar %a" Uchar.dump u
 
 let err_exp_await add =
   invalid_arg (Format.asprintf "can't add %a, expected `Await" pp_ret add)

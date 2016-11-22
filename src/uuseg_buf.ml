@@ -4,10 +4,11 @@
    %%NAME%% %%VERSION%%
   ---------------------------------------------------------------------------*)
 
-let dummy_u = `Uchar 0x0000              (* to initalize arrays, never read. *)
+let dummy_u =                            (* to initalize arrays, never read. *)
+  `Uchar (Uchar.unsafe_of_int 0x0000)
 
 type t =
-  { mutable buf : [`Uchar of int] array;
+  { mutable buf : [`Uchar of Uchar.t] array;
     mutable first : int;
     mutable last : int; }
 

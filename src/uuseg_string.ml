@@ -62,9 +62,11 @@ let pp_utf_8_text ~only_mandatory ppf s =
     if gc = "" then () else (Format.fprintf ppf "@<1>%s" gc; Buffer.clear b)
   in
   let buf_add u = match !buf_buf with
-  | Some 0x000D when u = 0x000A -> (* suppress CR *) buf_buf := Some u
-  | Some last -> Uutf.Buffer.add_utf_8 b last; buf_buf := Some u
   | None -> buf_buf := Some u
+  | Some last ->
+      match Uchar.to_int last with
+      | 0x000D when Uchar.to_int u = 0x000A -> buf_buf := Some u (* rem CR *)
+      | _ -> Uutf.Buffer.add_utf_8 b last; buf_buf := Some u
   in
   let buf_cut mandatory =
     let bbuf = !buf_buf in
