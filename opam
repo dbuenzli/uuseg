@@ -12,7 +12,7 @@ depends: [ "ocamlfind" {build}
            "ocamlbuild" {build}
            "topkg" {build}
            "uchar"
-           "uucp" {>= "1.0.0"} ]
+           "uucp" {>= "2.0.0" & < "3.0.0"} ]
 depopts: [ "uutf"
            "cmdliner"
            "uutf" {test}
