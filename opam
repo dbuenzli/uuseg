@@ -19,7 +19,7 @@ depopts: [ "uutf"
            "cmdliner" {test} ]
 conflicts: [ "uutf" {< "0.9.4"} ]
 build: [[
-  "ocaml" "pkg/pkg.ml"
+  "ocaml" "pkg/pkg.ml" "build"
   "--pinned" "%{pinned}%"
   "--with-uutf" "%{uutf:installed}%"
   "--with-cmdliner" "%{cmdliner:installed}%" ]]
