@@ -10,7 +10,7 @@ let pp_ret ppf v = match (v :> ret) with
 | `Await -> Format.fprintf ppf "`Await"
 | `Boundary -> Format.fprintf ppf "`Boundary"
 | `End -> Format.fprintf ppf "`End"
-| `Uchar u -> Format.fprintf ppf "`Uchar %a" Uchar.dump u
+| `Uchar u -> Format.fprintf ppf "`Uchar U+%04X" (Uchar.to_int u)
 
 let err_exp_await add =
   invalid_arg (Format.asprintf "can't add %a, expected `Await" pp_ret add)

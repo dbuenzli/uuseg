@@ -34,7 +34,7 @@ let uchar_ascii delim ppf =
   function
   | `Uchar u ->
       if !last_was_u then (Format.pp_print_char ppf ' ');
-      last_was_u := true; pp ppf "%a" Uchar.dump u
+      last_was_u := true; pp ppf "U+%04X" (Uchar.to_int u)
   | `Boundary ->
       last_was_u := false; pp ppf "%s" delim
   | `End -> ()
