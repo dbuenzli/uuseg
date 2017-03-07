@@ -1,5 +1,7 @@
+v1.0.1 2016-03-07 La Forclaz (VS)
+---------------------------------
 
-- OCaml 4.05 compatibility (`Uchar.dump` removal).
+- OCaml 4.05 compatibility (removal of `Uchar.dump`).
 
 v1.0.0 2016-11-23 Zagreb
 ------------------------
