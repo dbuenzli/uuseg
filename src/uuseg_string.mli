@@ -12,7 +12,8 @@
     {b Warning.} All these functions silently replace malformed encoded Unicode
     data by a {!Uutf.u_rep} character.
 
-    {e Release %%VERSION%% – %%MAINTAINER%% } *)
+    {e %%VERSION%% — Unicode version %%UNICODE_VERSION%% —
+       {{:%%PKG_HOMEPAGE%% }homepage}} *)
 
 (** {1:segment Segment} *)
 
