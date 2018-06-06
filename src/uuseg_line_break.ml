@@ -18,7 +18,7 @@
    LB6                                × (BK|CR|LF|NL)
    LB7                                × (SP|ZW)
    LB8                         ZW SP* ÷
-   LB8a                           ZWJ × (ID|EB|EM)
+   LB8a                           ZWJ ×
    LB9  ¬(BK|CR|LF|NL|SP|ZW as X) (CM|ZWJ) * → X
    LB10                      (CM|ZWJ) → AL
    LB11                               × WJ
@@ -169,7 +169,7 @@ let decide s =
   | (* LB6 *)   _, _, (BK|CR|LF|NL) -> no_boundary s
   | (* LB7 is partly handled in [add] *)   _, _, (SP|ZW) -> no_boundary s
   | (* LB8 the SP* is handled in [add] *)  _, ZW, _ -> `Boundary
-  | (* LB8a *) _, _, (ID|EB|EM) when s.l0_is_zwj -> no_boundary s
+  | (* LB8a *) _, _, _ when s.l0_is_zwj -> no_boundary s
   (* LB9 is handled in [add]. *)
   (* LB10 is handled in [add]. *)
   | (* LB11 *)  _, _, WJ -> no_boundary s
