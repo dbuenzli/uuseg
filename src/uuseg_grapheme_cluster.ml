@@ -18,8 +18,8 @@
    GB9.                   × (EX|ZWJ)
    GB9a.                  × SM
    GB9b.               PP ×
-   GB10.     (EB|EBG) EX* × EM
-   GB11.              ZWJ × (GAZ|EBG)
+   GB10. (v10.0.0) (EB|EBG) EX* × EM
+   GB11. (v10.0.0)          ZWJ × (GAZ|EBG)
    GB12.  sot (RI RI)* RI × RI
    GB13.   [^RI] (RI RI)* × RI
    GB999.             Any ÷ Any
