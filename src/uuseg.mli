@@ -21,6 +21,11 @@
     Consult the {{!basics}basics}, {{!limits}limitations} and
     {{!examples}examples} of use.
 
+    {b Warning} Version 11.0.0 of UAX #29 grapheme cluster and word
+    segmentation are not stricly conforomant with respect to emojis
+    see {{:https://github.com/dbuenzli/uuseg/issues/5}this issue} for
+    details.
+
     {e %%VERSION%% — Unicode version %%UNICODE_VERSION%% —
        {{:%%PKG_HOMEPAGE%% }homepage}}
 

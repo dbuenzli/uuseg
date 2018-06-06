@@ -12,7 +12,8 @@
    WB3.                  CR × LF
    WB3a.         (NL|CR|LF) ÷
    WB3b.                    ÷ (NL|CR|LF)
-   WB3c.                ZWJ × (Glue_After_Zwj|EBG)
+   WB3c. (v10.0.0)      ZWJ × (Glue_After_Zwj|EBG)
+   WB3d.          WSegSpace × WSegSpace
    WB4.  X (Extend|FO|ZWJ)* → X
    WB5.             (LE|HL) × (LE|HL)
    WB6.             (LE|HL) × (ML|MB|SQ) (LE|HL)
@@ -28,7 +29,7 @@
    WB13.                 KA × KA
    WB13a.  (LE|HL|NU|KA|EX) × EX
    WB13b.                EX × (LE|HL|NU|KA)
-   WB14.           (EB|EBG) × EM
+   WB14. (v10.0.0) (EB|EBG) × EM
    WB15     sot (RI RI)* RI × RI
    WB15   [^RI] (RI RI)* RI × RI
    WB13c.                RI × RI
@@ -51,14 +52,14 @@
 
 type word =
 | CR | DQ | EX | EB | EBG | EM | Extend | FO | GAZ | HL | KA | LE | LF
-| MB | ML | MN | NL | NU | RI | SQ | XX | ZWJ | Invalid | Sot | Eot
+| MB | ML | MN | NL | NU | RI | SQ | WSegSpace | XX | ZWJ | Invalid | Sot | Eot
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.word. *)
 
 let byte_to_word =
   [| CR; DQ; EX; EB; EBG; EM; Extend; FO; GAZ; HL; KA; LE; LF;
-     MB; ML; MN; NL; NU; RI; SQ; XX; ZWJ |]
+     MB; ML; MN; NL; NU; RI; SQ; WSegSpace; XX; ZWJ |]
 
 let word u = byte_to_word.(Uucp.Break.Low.word u)
 
@@ -140,6 +141,7 @@ let decide s =
   | (* WB3a *)  _, (NL|CR|LF), _, _ -> `Boundary
   | (* WB3b *)  _, _, (NL|CR|LF), _ -> `Boundary
   | (* WB3c *)  _, _,(GAZ|EBG), _ when s.window_is_zwj.(l0) -> no_boundary s
+  | (* WB3d *)  _, WSegSpace,WSegSpace, _ -> no_boundary s
   (* WB4 is handled indirectly during Fill *)
   | (* WB5 *)   _, (LE|HL), (LE|HL), _ -> no_boundary s
   | (* WB6 *)   _, (LE|HL), (ML|MB|SQ), (LE|HL) -> no_boundary s
