@@ -1,3 +1,10 @@
+v11.0.0 2017-06-06 Zürich
+-------------------------
+
+- Unicode 11.0.0 support. Grapheme cluster and word boundaries
+  w.r.t. emojis are only partially supported according to the
+  specification see issue #5 for details.
+  
 v10.0.0 2017-06-20 Cambridge (UK)
 ---------------------------------
 
