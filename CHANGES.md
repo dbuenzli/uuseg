@@ -1,4 +1,4 @@
-v11.0.0 2017-06-06 Zürich
+v11.0.0 2018-06-06 Zürich
 -------------------------
 
 - Unicode 11.0.0 support. Grapheme cluster and word boundaries
