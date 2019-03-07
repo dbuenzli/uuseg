@@ -2,7 +2,7 @@ v12.0.0 2019-03-08 La Forclaz (VS)
 ----------------------------------
 
 - Unicode 12.0.0 support. Grapheme cluster and word boundaries
-  w.r.t. are still only partially according to the specification
+  w.r.t. emojis are still only partially according to the specification
   see issue #5 for details.
 
 v11.0.0 2018-06-06 Zürich
