@@ -1,4 +1,6 @@
 true : bin_annot, safe_string, package(uchar)
+
+<_b0> : -traverse
 <src> : include
 <src/*> : package(uucp)
 <src/uuseg_string*> : package(uutf)
