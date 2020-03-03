@@ -18,8 +18,7 @@
    GB9.                   × (EX|ZWJ)
    GB9a.                  × SM
    GB9b.               PP ×
-   GB10. (v10.0.0) (EB|EBG) EX* × EM
-   GB11. (v10.0.0)          ZWJ × (GAZ|EBG)
+   GB11. \p{Extended_Pictographic} EX* ZWJ x \p{Extended_Pictographic}
    GB12.  sot (RI RI)* RI × RI
    GB13.   [^RI] (RI RI)* × RI
    GB999.             Any ÷ Any
@@ -56,20 +55,20 @@ type state =
 type t =
   { mutable state : state;                                 (* current state. *)
     mutable left : gcb;            (* break property value left of boundary. *)
-    mutable odd_ri : bool;                  (* odd number of RI on the left. *)
-    mutable emoji_seq : bool;               (* (EB|EBG) Extend* on the left. *)
+    mutable left_odd_ri : bool;             (* odd number of RI on the left. *)
+    mutable left_emoji_seq : bool;                 (* emoji seq on the left. *)
     mutable buf : [ `Uchar of Uchar.t ] }                 (* bufferized add. *)
 
 let nul_buf = `Uchar (Uchar.unsafe_of_int 0x0000)
 
 let create () =
-  { state = Fill; left = Sot;
-    odd_ri = false; emoji_seq = false;
+  { state = Fill;
+    left = Sot; left_odd_ri = false; left_emoji_seq = false;
     buf = nul_buf (* overwritten *); }
 
 let copy s = { s with state = s.state; }
 
-let break s right = match s.left, right with
+let break s right right_u = match s.left, right with
 | (* GB1 *)   Sot, _ -> true
   (* GB2 is handled by `End *)
 | (* GB3 *)   CR, LF -> false
@@ -80,26 +79,34 @@ let break s right = match s.left, right with
 | (* GB8 *)   (LVT|T), T -> false
 | (* GB9+a *) _, (EX|ZWJ|SM) -> false
 | (* GB9b *)  PP, _ -> false
-| (* GB10 *)  _, EM when s.emoji_seq -> false
-| (* GB11 *)  ZWJ, (GAZ|EBG) -> false
-| (* GB12+13 *) RI, RI when s.odd_ri -> false
+| (* GB11 *)  ZWJ, _ when s.left_emoji_seq &&
+                          Uucp.Emoji.is_extended_pictographic right_u -> false
+| (* GB12+13 *) RI, RI when s.left_odd_ri -> false
 | (* GB999 *) _, _ -> true
 
-let update_left s right =
+let update_left s right right_u =
   s.left <- right;
   match s.left with
-  | EX -> (* keep s.emoji_seq as is *) s.odd_ri <- false
-  | EB | EBG -> s.emoji_seq <- true; s.odd_ri <- false
-  | RI -> s.emoji_seq <- false; s.odd_ri <- not s.odd_ri
-  | _ -> s.emoji_seq <- false; s.odd_ri <- false
+  | EX | ZWJ ->
+      s.left_odd_ri <- false
+      (* keep s.left_emoji_seq as is *)
+  | RI ->
+      s.left_odd_ri <- not s.left_odd_ri;
+      s.left_emoji_seq <- false;
+  | _ when Uucp.Emoji.is_extended_pictographic right_u ->
+      s.left_odd_ri <- false;
+      s.left_emoji_seq <- true;
+  | _ ->
+      s.left_odd_ri <- false;
+      s.left_emoji_seq <- false
 
 let add s = function
 | `Uchar u as add ->
     begin match s.state with
     | Fill ->
         let right = gcb u in
-        let break = break s right in
-        update_left s right;
+        let break = break s right u in
+        update_left s right u;
         if not break then add else
         (s.state <- Flush; s.buf <- add; `Boundary)
     | Flush -> Uuseg_base.err_exp_await add
