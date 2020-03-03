@@ -25,10 +25,10 @@
                                    WJ ×
    LB12                            GL ×
    LB12a                  ¬(SP|BA|HY) × GL
-   LB13                               × (CL|CP|EX|IS|SY)
-   LB14                        OP SP* ×
-   LB15                        QU SP* × OP
-   LB16                   (CL|CP) SP* × NS
+   LB13                               × (CL|CP|CP30|EX|IS|SY)
+   LB14                 (OP|OP30) SP* ×
+   LB15                        QU SP* × (OP|OP30)
+   LB16              (CL|CP|CP30) SP* × NS
    LB17                        B2 SP* × B2
    LB18                            SP ÷
    LB19                               × QU
@@ -39,15 +39,15 @@
                                    BB ×
    LB21a                   HL (HY|BA) ×
    LB21b                           SY × HL
-   LB22     (AL|HL|EX|ID|EB|EM|IN|NU) × IN
+   LB22                               × IN
    LB23                       (AL|HL) × NU
                                    NU × (AL|HL)
    LB23a                           PR × (ID|EB|EM)
                            (ID|EB|EM) × PO
    LB24                       (PR|PO) × (AL|HL)
                               (AL|HL) × (PR|PO)
-   LB25                    (CL|CP|NU) × (PO|PR)
-                              (PO|PR) × OP
+   LB25               (CL|CP|CP30|NU) × (PO|PR)
+                              (PO|PR) × (OP|OP30)
                   (PO|PR|HY|IS|NU|SY) × NU
    LB26                            JL × (JL|JV|H2|H3)
                               (JV|H2) × (JV|JT)
@@ -56,8 +56,8 @@
                                    PR × (JL|JV|JT|H2|H3)
    LB28                       (AL|HL) × (AL|HL)
    LB29                            IS × (AL|HL)
-   LB30                    (AL|HL|NU) × OP
-                                   CP × (AL|HL|NU)
+   LB30                    (AL|HL|NU) × OP30
+                                 CP30 × (AL|HL|NU)
    LB30a              sot (RI RI)* RI × RI
                     [^RI] (RI RI)* RI × RI
    LB30b                           EB × EM
@@ -84,6 +84,8 @@ type line =
   | CR | EX | EB | EM | GL | H2 | H3 | HL | HY | ID | IN
   | IS | JL | JT | JV | LF | NL | NS | NU | OP | PO | PR
   | QU | RI | SA | SG | SP | SY | WJ | XX | ZW | ZWJ | Invalid | Sot | Eot
+  (* Added to handle LB30 *)
+  | OP30 | CP30
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.line_break. *)
@@ -100,6 +102,16 @@ let line u = match byte_to_line.(Uucp.Break.Low.line u) with
     | `Mn | `Mc -> CM
     | _ -> AL
     end
+| OP ->
+    begin match Uucp.Break.east_asian_width u with
+    | `F | `W | `H -> OP
+    | _ -> OP30
+    end;
+| CP ->
+    begin match Uucp.Break.east_asian_width u with
+    | `F | `W | `H -> CP
+    | _ -> CP30
+    end;
 | l -> l
 
 type state =
@@ -176,10 +188,10 @@ let decide s =
   |             _, WJ, _ -> no_boundary s
   | (* LB12 *)  _, GL, _ -> no_boundary s
   | (* LB12a *) _, x, GL when x <> SP && x <> BA && x <> HY -> no_boundary s
-  | (* LB13 *)  _, _, (CL|CP|EX|IS|SY) -> no_boundary s
-  | (* LB14 the SP* is handled in [add] *) _, OP, _ -> no_boundary s
-  | (* LB15 the SP* is handled in [add] *) _, QU, OP -> no_boundary s
-  | (* LB16 the SP* is handled in [add] *) _, (CL|CP), NS -> no_boundary s
+  | (* LB13 *)  _, _, (CL|CP|CP30|EX|IS|SY) -> no_boundary s
+  | (* LB14 the SP* is handled in [add] *) _, (OP|OP30), _ -> no_boundary s
+  | (* LB15 the SP* is handled in [add] *) _, QU, (OP|OP30) -> no_boundary s
+  | (* LB16 the SP* is handled in [add] *) _, (CL|CP|CP30), NS -> no_boundary s
   | (* LB17 the SP* is handled in [add] *) _, B2, B2 -> no_boundary s
   | (* LB18 *)  _, SP, _ -> `Boundary
   | (* LB19 *)  _, _, QU -> no_boundary s
@@ -190,25 +202,25 @@ let decide s =
   |             _, BB, _ -> no_boundary s
   | (* LB21a *) HL, (BA|HY), _ -> no_boundary s
   | (* LB21b *) _, SY, HL -> no_boundary s
-  | (* LB22 *)  _, (AL|HL|EX|ID|EB|EM|IN|NU), IN -> no_boundary s
+  | (* LB22 *)  _, _, IN -> no_boundary s
   | (* LB23 *)  _, (AL|HL), NU -> no_boundary s
   |             _, NU, (AL|HL) -> no_boundary s
   | (* LB23a *) _, PR, (ID|EB|EM) -> no_boundary s
   |             _, (ID|EB|EM), PO -> no_boundary s
   | (* LB24 *)  _, (PR|PO), (AL|HL) -> no_boundary s
   |             _, (AL|HL), (PR|PO) -> no_boundary s
-  | (* LB25 *)  _, (CL|CP|NU), (PO|PR) -> no_boundary s
-  |             _, (PO|PR), OP -> no_boundary s
+  | (* LB25 *)  _, (CL|CP|CP30|NU), (PO|PR) -> no_boundary s
+  |             _, (PO|PR), (OP|OP30) -> no_boundary s
   |             _, (PO|PR|HY|IS|NU|SY), NU -> no_boundary s
   | (* LB26 *)  _, JL, (JL|JV|H2|H3) -> no_boundary s
   |             _, (JV|H2), (JV|JT) -> no_boundary s
   |             _, (JT|H3), JT -> no_boundary s
-  | (* LB27 *)  _, (JL|JV|JT|H2|H3), (IN|PO) -> no_boundary s
+  | (* LB27 *)  _, (JL|JV|JT|H2|H3), PO -> no_boundary s
   |             _, PR, (JL|JV|JT|H2|H3) -> no_boundary s
   | (* LB28 *)  _, (AL|HL), (AL|HL) -> no_boundary s
   | (* LB29 *)  _, IS, (AL|HL) -> no_boundary s
-  | (* LB30 *)  _, (AL|HL|NU), OP -> no_boundary s
-  |             _, CP, (AL|HL|NU) -> no_boundary s
+  | (* LB30 *)  _, (AL|HL|NU), OP30 -> no_boundary s
+  |             _, CP30, (AL|HL|NU) -> no_boundary s
   | (* LB30a *) _, RI, RI when s.odd_ri -> no_boundary s
   | (* LB30b *) _, EB, EM -> no_boundary s
   | (* LB31 *)  _, _, _ -> `Boundary
@@ -237,8 +249,8 @@ let add s = function
             if r0_line s = SP then ((* bufferize *) r0_add s add; `Await) else
             begin match l0_line s with
             | ZW -> add (* LB8's SP* *)
-            | OP -> add (* LB14's SP* *)
-            | (QU|CL|CP|B2) -> (* LB15, LB16, LB17 *)
+            | (OP|OP30) -> add (* LB14's SP* *)
+            | (QU|CL|CP|CP30|B2) -> (* LB15, LB16, LB17 *)
                 r0_line_set s SP; r0_add s add; `Await
             | _ ->
                 s.state <- Flush; r0_line_set s SP; r0_add s add; decide s
@@ -247,7 +259,8 @@ let add s = function
             if r0_line s <> SP
             then (s.state <- Flush; r0_line_set s line; r0_add s add; decide s)
             else begin match l0_line s, line with
-            | QU, OP (* LB15 *) | (CL|CP), NS (* LB16 *) | B2, B2 (* LB17 *) ->
+            | QU, (OP|OP30) (* LB15 *) | (CL|CP|CP30), NS (* LB16 *)
+            | B2, B2 (* LB17 *) ->
                 s.state <- Flush; r0_line_set s line; r0_add s add; r0_flush s
             | _ -> flush_SP line false add s
             end

@@ -224,6 +224,10 @@ let line_break_ignores =
    [ u 0x0063; u 0x006F; u 0x0064; u 0x0065; u 0x005C; `B; u 0x007B;
      u 0x0073; u 0x005C; u 0x007D; `B],
    "tailoring, violates PR × OP of LB25";
+   [ u 0x0025; `B; u 0x2329; `B],
+   "tailoring, violates PO × OP of LB25";
+   [ u 0x0024; `B; u 0x2329; `B],
+   "tailoring, violates PR × OP of LB25";
   ]
 
 let rec seq_of_spec acc = function
