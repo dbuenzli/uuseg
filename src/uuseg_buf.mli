@@ -29,6 +29,9 @@ val add : t -> [`Uchar of Uchar.t] -> unit
 val flush : t -> [> `Uchar of Uchar.t ]
 (** [flush b] is the first [`Uchar] of [b] and removes it from [b]. *)
 
+val get_first : t -> Uchar.t
+(** [get_first b] is the first [`Uchar] of [b], if any. *)
+
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 The uuseg programmers
 

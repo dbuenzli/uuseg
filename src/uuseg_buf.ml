@@ -32,6 +32,8 @@ let flush b =
   if b.first > b.last then (b.first <- 0; b.last <- -1);
   add
 
+let get_first b = let `Uchar u = b.buf.(b.first) in u
+
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 The uuseg programmers
 
