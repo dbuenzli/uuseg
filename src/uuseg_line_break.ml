@@ -73,6 +73,13 @@
    applies. Because of LB9 these slots may actually correspond to more
    than one character and we need to bufferize the data for the slot
    on the right.
+
+   Besides we maintain two views of the window slots, one which has
+   the word berak property of concrete characters and another one
+   that has the word break property as seen by the LB9 rule and
+   those that have SP* elements.
+
+
                             ---??--->
                      +----+----++----+
                   ...| l1 | l0 || r0 |
@@ -97,17 +104,17 @@ let byte_to_line =
      AL (* LB1 XX → AL *); ZW; ZWJ |]
 
 let line u = match byte_to_line.(Uucp.Break.Low.line u) with
-| SA ->
-    begin match Uucp.Gc.general_category u with (* LB1 for SA *)
+| SA -> (* LB1 for SA *)
+    begin match Uucp.Gc.general_category u with
     | `Mn | `Mc -> CM
     | _ -> AL
     end
-| OP ->
+| OP -> (* Decompose because of LB30 *)
     begin match Uucp.Break.east_asian_width u with
     | `F | `W | `H -> OP
     | _ -> OP30
     end;
-| CP ->
+| CP -> (* Decompose because of LB30 *)
     begin match Uucp.Break.east_asian_width u with
     | `F | `W | `H -> CP
     | _ -> CP30
@@ -115,185 +122,145 @@ let line u = match byte_to_line.(Uucp.Break.Low.line u) with
 | l -> l
 
 type state =
-  | Fill                             (* fill slots on the right of boundary. *)
-  | Flush                          (* flush slot r0 to get to next boundary. *)
-  | Flush_SP                      (* special state to handle rules with SP*. *)
-  | End                                                   (* `End was added. *)
+| Fill (* fill slot on the right of boundary. *)
+| Flush (* flush the first lement of slot r0 to get to next boundary. *)
+| Decide (* decide boundary of slot r0. *)
 
 type t =
   { mutable state : state;                                 (* current state. *)
-    window : line array;                                    (* break window. *)
-    mutable l0 : int;                            (* index in [window] of l0. *)
-    r0_buf : Uuseg_buf.t;                                  (* buffer for r0. *)
-    mutable odd_ri : bool;      (* odd number of RI on the left of boundary. *)
-    mutable r0_is_zwj : bool;                         (* for LB8a r0 is ZWJ. *)
-    mutable l0_is_zwj : bool;                         (* for LB8a l0 is ZWJ. *)
-    mutable mandatory : bool; }             (* [true] if break is mandatory. *)
+    mutable l1 : line; mutable l1_rewrite : line; (* l1 according to lb9/lb10 *)
+    mutable l0 : line; mutable l0_rewrite : line; (* l0 according to lb9/lb10 *)
+    mutable l0_odd_ri : bool; (* odd number of RI on the left of break point. *)
+    mutable r0 : line; (* of first element in r0_data *)
+    mutable r0_data : [`Uchar of Uchar.t ]; (* data in r0 *)
+    mutable mandatory : bool; (* [true] if break is mandatory. *) }
 
-let u_dummy = `Uchar (Uchar.unsafe_of_int 0x0000)
-
+let nul_buf = `Uchar (Uchar.unsafe_of_int 0x0000)
 let create () =
   { state = Fill;
-    window = [|Invalid; Sot; Invalid; |];
-    l0 = 1;
-    r0_buf = Uuseg_buf.create 13;
-    odd_ri = false;
-    r0_is_zwj = false;
-    l0_is_zwj = false;
+    l1 = Invalid; l1_rewrite = Invalid;
+    l0 = Sot; l0_rewrite = Sot;
+    l0_odd_ri = false;
+    r0 = Invalid;
+    r0_data = nul_buf (* overwritten *);
     mandatory = false; }
 
-let copy s =
-  { s with window = Array.copy s.window;
-           r0_buf = Uuseg_buf.copy s.r0_buf }
+let mandatory s = s.mandatory
+let copy s = { s with state = s.state }
 
-let l0_line s = s.window.(s.l0)
-let r0_line s = s.window.((s.l0 + 1) mod Array.length s.window)
-let r0_line_set s l =
-  s.window.((s.l0 + 1) mod Array.length s.window) <- l;
-  s.r0_is_zwj <- false
+let lb10_rewrite = function CM | ZWJ -> AL | l -> l
+let is_lb9_X = function  BK | CR | LF | NL | SP | ZW | Sot -> false | _ -> true
+let is_lb12_l0 = function SP | BA | HY -> false | _ -> true
 
-let r0_add s add = Uuseg_buf.add s.r0_buf add
-let r0_empty s = Uuseg_buf.empty s.r0_buf
-let r0_len s = Uuseg_buf.len s.r0_buf
-let r0_flush s = Uuseg_buf.flush s.r0_buf
-let window_move s =
-  s.l0 <- (s.l0 + 1) mod Array.length s.window;
-  if s.window.(s.l0) = RI then s.odd_ri <- not s.odd_ri else s.odd_ri <- false;
-  s.l0_is_zwj <- s.r0_is_zwj;
-  r0_line_set s Invalid
-
-let decide s =
-  let no_boundary s = r0_flush s in
-  let wlen = Array.length s.window in
-  let l0 = s.l0 in
-  let r0 = (l0 + 1) mod wlen in
-  let l1 = (l0 + 2) mod wlen in
-  let w = s.window in
+let has_break s = (* N.B. sets s.mandatory by side effect. *)
+  let mandatory s = s.mandatory <- true; true in
   s.mandatory <- false;
-  match w.(l1), w.(l0) (**),(**) w.(r0) with
+  match s.l1, s.l0 (**),(**) s.r0 with
   (* LB1 is handled by [byte_to_line] and [line]. *)
-  | (* LB2 *)   _, Sot, _ -> no_boundary s
-  | (* LB3 is partly handled in [add]. *)
-                _, _, Eot -> s.mandatory <- true; `Boundary
-  | (* LB4 *)   _, BK, _ -> s.mandatory <- true; `Boundary
-  | (* LB5 *)   _, CR, LF -> no_boundary s
-  |             _, (CR|LF|NL), _ -> s.mandatory <- true; `Boundary
-  | (* LB6 *)   _, _, (BK|CR|LF|NL) -> no_boundary s
-  | (* LB7 is partly handled in [add] *)   _, _, (SP|ZW) -> no_boundary s
-  | (* LB8 the SP* is handled in [add] *)  _, ZW, _ -> `Boundary
-  | (* LB8a *) _, _, _ when s.l0_is_zwj -> no_boundary s
-  (* LB9 is handled in [add]. *)
-  (* LB10 is handled in [add]. *)
-  | (* LB11 *)  _, _, WJ -> no_boundary s
-  |             _, WJ, _ -> no_boundary s
-  | (* LB12 *)  _, GL, _ -> no_boundary s
-  | (* LB12a *) _, x, GL when x <> SP && x <> BA && x <> HY -> no_boundary s
-  | (* LB13 *)  _, _, (CL|CP|CP30|EX|IS|SY) -> no_boundary s
-  | (* LB14 the SP* is handled in [add] *) _, (OP|OP30), _ -> no_boundary s
-  | (* LB15 the SP* is handled in [add] *) _, QU, (OP|OP30) -> no_boundary s
-  | (* LB16 the SP* is handled in [add] *) _, (CL|CP|CP30), NS -> no_boundary s
-  | (* LB17 the SP* is handled in [add] *) _, B2, B2 -> no_boundary s
-  | (* LB18 *)  _, SP, _ -> `Boundary
-  | (* LB19 *)  _, _, QU -> no_boundary s
-  |             _, QU, _ -> no_boundary s
-  | (* LB20 *)  _, _, CB -> `Boundary
-  |             _, CB, _ -> `Boundary
-  | (* LB21 *)  _, _, (BA|HY|NS) -> no_boundary s
-  |             _, BB, _ -> no_boundary s
-  | (* LB21a *) HL, (BA|HY), _ -> no_boundary s
-  | (* LB21b *) _, SY, HL -> no_boundary s
-  | (* LB22 *)  _, _, IN -> no_boundary s
-  | (* LB23 *)  _, (AL|HL), NU -> no_boundary s
-  |             _, NU, (AL|HL) -> no_boundary s
-  | (* LB23a *) _, PR, (ID|EB|EM) -> no_boundary s
-  |             _, (ID|EB|EM), PO -> no_boundary s
-  | (* LB24 *)  _, (PR|PO), (AL|HL) -> no_boundary s
-  |             _, (AL|HL), (PR|PO) -> no_boundary s
-  | (* LB25 *)  _, (CL|CP|CP30|NU), (PO|PR) -> no_boundary s
-  |             _, (PO|PR), (OP|OP30) -> no_boundary s
-  |             _, (PO|PR|HY|IS|NU|SY), NU -> no_boundary s
-  | (* LB26 *)  _, JL, (JL|JV|H2|H3) -> no_boundary s
-  |             _, (JV|H2), (JV|JT) -> no_boundary s
-  |             _, (JT|H3), JT -> no_boundary s
-  | (* LB27 *)  _, (JL|JV|JT|H2|H3), PO -> no_boundary s
-  |             _, PR, (JL|JV|JT|H2|H3) -> no_boundary s
-  | (* LB28 *)  _, (AL|HL), (AL|HL) -> no_boundary s
-  | (* LB29 *)  _, IS, (AL|HL) -> no_boundary s
-  | (* LB30 *)  _, (AL|HL|NU), OP30 -> no_boundary s
-  |             _, CP30, (AL|HL|NU) -> no_boundary s
-  | (* LB30a *) _, RI, RI when s.odd_ri -> no_boundary s
-  | (* LB30b *) _, EB, EM -> no_boundary s
-  | (* LB31 *)  _, _, _ -> `Boundary
+  | (* LB2 *)  _, Sot, _ -> false
+  | (* LB3 *)  _, _, Eot -> mandatory s
+  | (* LB4 *)  _, BK, _ -> mandatory s
+  | (* LB5 *)  _, CR, LF -> false
+  |            _, (CR|LF|NL), _ -> mandatory s
+  | (* LB6 *)   _, _, (BK|CR|LF|NL) -> false
+  | (* LB7 *)   _, _, (SP|ZW) -> false
+  | (* LB8 *)  _, ZW, _ -> true
+  |            _(* ZW *), _(* SP* *), _ when s.l1_rewrite = ZW &&
+                                             s.l0_rewrite = SP -> true
+  | (* LB8a *) _, ZWJ, _ -> false
+  | (* LB9 implicitely entails  ¬(BK|CR|LF|NL|SP|ZW as X) × (CM|ZWJ) *)
+               _, x, (CM|ZWJ) when is_lb9_X s.l0_rewrite -> false
+  | _ -> (* apply LB9/LB10 rewrite and match *)
+      let l1 = if is_lb9_X s.l1_rewrite then s.l1_rewrite else s.l1 in
+      let l0 = if is_lb9_X s.l0_rewrite then s.l0_rewrite else s.l0 in
+      match (lb10_rewrite l1), (lb10_rewrite l0), (lb10_rewrite s.r0) with
+      | (* LB11 *)  _, _, WJ -> false
+      |             _, WJ, _ -> false
+      | (* LB12 *)  _, GL, _ -> false
+      | (* LB12a *) _, l0, GL when is_lb12_l0 l0 -> false
+      | (* LB13 *)  _, _, (CL|CP|CP30|EX|IS|SY) -> false
+      | (* LB14 *)  _, (OP|OP30), _ -> false
+      |             (OP|OP30), SP, _ -> false
+      | (* LB15 *)  _, QU, (OP|OP30) -> false
+      |             QU, SP, (OP|OP30) -> false
+      | (* LB16 *)  _, (CL|CP|CP30), NS -> false
+      |             (CL|CP|CP30), SP, NS -> false
+      | (* LB17 *)  _, B2, B2 -> false
+      |             B2, SP, B2 -> false
+      | (* LB18 *)  _, SP, _ -> true
+      | (* LB19 *)  _, _, QU -> false
+      |             _, QU, _ -> false
+      | (* LB20 *)  _, _, CB -> true
+      |             _, CB, _ -> true
+      | (* LB21 *)  _, _, (BA|HY|NS) -> false
+      |             _, BB, _ -> false
+      | (* LB21a *) HL, (HY|BA), _ -> false
+      | (* LB21b *) _, SY, HL -> false
+      | (* LB22 *)  _, _, IN -> false
+      | (* LB23 *)  _, (AL|HL), NU -> false
+      |             _, NU, (AL|HL) -> false
+      | (* LB23a *) _, PR, (ID|EB|EM) -> false
+      |             _, (ID|EB|EM), PO -> false
+      | (* LB24 *)  _, (PR|PO), (AL|HL) -> false
+      |             _, (AL|HL), (PR|PO) -> false
+      | (* LB25 *)  _, (CL|CP|CP30|NU), (PO|PR) -> false
+      |             _, (PO|PR), (OP|OP30) -> false
+      |             _, (PO|PR|HY|IS|NU|SY), NU -> false
+      | (* LB26 *)  _, JL, (JL|JV|H2|H3) -> false
+      |             _, (JV|H2), (JV|JT) -> false
+      |             _, (JT|H3), JT -> false
+      | (* LB27 *)  _, (JL|JV|JT|H2|H3), PO -> false
+      |             _, PR, (JL|JV|JT|H2|H3) -> false
+      | (* LB28 *)  _, (AL|HL), (AL|HL) -> false
+      | (* LB29 *)  _, IS, (AL|HL) -> false
+      | (* LB30 *)  _, (AL|HL|NU), OP30 -> false
+      |             _, CP30, (AL|HL|NU) -> false
+      | (* LB30a *) _, RI, RI when s.l0_odd_ri -> false
+      | (* LB30b *) _, EB, EM -> false
+      | (* LB31 *)  _, _, _ -> true
 
-let flush_SP line r0_is_zwj add s =
-  s.state <- Flush_SP; r0_line_set s line; s.r0_is_zwj <- r0_is_zwj;
-  r0_add s add; r0_flush s
+let next s = (* moves to the next boundary *)
+  s.l1 <- s.l0;
+  s.l0 <- s.r0;
+  (* Only move rewrite window if l0_rewrite doesn't absorb the char
+     by rule LB9 or the various SP* *)
+  begin match s.r0 with
+  | CM | ZWJ when is_lb9_X s.l0_rewrite -> ()
+  | SP when s.l0_rewrite = SP -> ()
+  | _ ->
+      s.l1_rewrite <- s.l0_rewrite;
+      s.l0_rewrite <- s.r0;
+      s.l0_odd_ri <-
+        (match s.l0_rewrite with RI -> not s.l0_odd_ri | _ -> false);
+  end;
+  s.r0 <- Invalid
+
+let ended s = s.r0 = Eot
+let flush s =
+  if ended s then `End else
+  (next s; s.state <- Fill; (s.r0_data :> Uuseg_base.ret))
+
+let decide s = if has_break s then (s.state <- Flush; `Boundary) else flush s
 
 let add s = function
 | `Uchar u as add ->
+    if ended s then Uuseg_base.err_ended add else
     begin match s.state with
-    | Fill ->
-        begin match line u with
-        | (CM|ZWJ as b) ->
-            if r0_line s = SP then flush_SP AL (b = ZWJ) add s (* LB10 *) else
-            begin match l0_line s with
-            | BK | CR | LF | NL | SP | ZW | Sot -> (* LB10 *)
-                s.state <- Flush;
-                r0_line_set s AL; s.r0_is_zwj <- (b = ZWJ);
-                r0_add s add; decide s
-            | _ ->
-                s.l0_is_zwj <- (b = ZWJ);
-                add (* LB9 *)
-            end
-        | SP ->
-            if r0_line s = SP then ((* bufferize *) r0_add s add; `Await) else
-            begin match l0_line s with
-            | ZW -> add (* LB8's SP* *)
-            | (OP|OP30) -> add (* LB14's SP* *)
-            | (QU|CL|CP|CP30|B2) -> (* LB15, LB16, LB17 *)
-                r0_line_set s SP; r0_add s add; `Await
-            | _ ->
-                s.state <- Flush; r0_line_set s SP; r0_add s add; decide s
-            end
-        | line ->
-            if r0_line s <> SP
-            then (s.state <- Flush; r0_line_set s line; r0_add s add; decide s)
-            else begin match l0_line s, line with
-            | QU, (OP|OP30) (* LB15 *) | (CL|CP|CP30), NS (* LB16 *)
-            | B2, B2 (* LB17 *) ->
-                s.state <- Flush; r0_line_set s line; r0_add s add; r0_flush s
-            | _ -> flush_SP line false add s
-            end
-        end
-    | Flush | Flush_SP -> Uuseg_base.err_exp_await add
-    | End -> Uuseg_base.err_ended add
+    | Fill -> s.r0_data <- add; s.r0 <- line u; decide s
+    | Flush | Decide -> Uuseg_base.err_exp_await add
     end
 | `Await ->
     begin match s.state with
-    | Flush ->
-        if not (r0_empty s) then r0_flush s else
-        (s.state <- Fill; window_move s; `Await)
-    | Flush_SP ->
-        if r0_len s > 1 then ((* LB7 *) r0_flush s) else
-        (* last one is not a SP, decide SP ? last  *)
-        let last = r0_line s in
-        r0_line_set s SP; window_move s; r0_line_set s last;
-        (s.state <- if last = Eot then End else Flush); decide s
-    | End -> `End
+    | Flush -> flush s
+    | Decide -> decide s
     | Fill -> `Await
     end
 | `End ->
+    if ended s then Uuseg_base.err_ended `End else
     begin match s.state with
-    | Fill ->
-        s.state <- End;
-        if s.window.(s.l0) = Sot then `End (* LB2 on empty seq. *) else
-        if r0_line s = SP then flush_SP Eot false u_dummy s
-        else (s.mandatory <- true; `Boundary) (* LB3 *)
-    | Flush | Flush_SP -> Uuseg_base.err_exp_await `End
-    | End -> Uuseg_base.err_ended `End
+    | Fill -> s.r0 <- Eot; if s.l0 = Sot then (* eps *) `End else decide s
+    | Flush | Decide -> Uuseg_base.err_exp_await `End
     end
-
-let mandatory s = s.mandatory
 
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 The uuseg programmers
