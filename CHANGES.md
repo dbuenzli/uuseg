@@ -1,7 +1,10 @@
 
-
+- Unicode 13.0.0 support.
+- Grapheme clusters and word boundaries w.r.t. emojis are segmented
+  according to the specification (#5 is closed).
+- Internal rewrite of word and line break boundaries. Implementations
+  are less hairy, less ad-hoc (not there yet though) and more correct.
 - Require OCaml >= 4.03.0.
-
 
 v12.0.0 2019-03-08 La Forclaz (VS)
 ----------------------------------
