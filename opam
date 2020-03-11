@@ -11,7 +11,7 @@ depends: [ "ocaml" {>= "4.03.0"}
            "ocamlfind" {build}
            "ocamlbuild" {build}
            "topkg" {build}
-           "uucp" {>= "12.0.0" & < "13.0.0"} ]
+           "uucp" {>= "13.0.0" & < "14.0.0"} ]
 depopts: [ "uutf"
            "cmdliner"
            "uutf" {with-test}

@@ -21,5 +21,5 @@ let () =
        Pkg.bin ~cond:(uutf && cmdliner) "test/usegtrip";
        Pkg.test "test/test";
        Pkg.test "test/examples";
-       Pkg.doc "doc/index.mld" ~dst_dir:"odoc-pages/index.mld";
+       Pkg.doc "doc/index.mld" ~dst:"odoc-pages/index.mld";
        Pkg.doc "test/examples.ml"; ]

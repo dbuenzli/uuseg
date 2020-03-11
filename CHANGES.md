@@ -1,3 +1,5 @@
+v13.0.0 2019-03-11 La Forclaz (VS)
+----------------------------------
 
 - Unicode 13.0.0 support.
 - Grapheme clusters and word boundaries w.r.t. emojis are segmented
