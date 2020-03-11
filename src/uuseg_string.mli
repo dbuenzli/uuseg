@@ -9,7 +9,7 @@
     strings.
 
     {b Warning.} All these functions silently replace malformed encoded Unicode
-    data by a {!Uutf.u_rep} character.
+    data by a {!Stdlib.Uchar.rep} character.
 
     {e Unicode version %%UNICODE_VERSION%%} *)
 
