@@ -1,7 +1,6 @@
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 The uuseg programmers. All rights reserved.
    Distributed under the ISC license, see terms at the end of the file.
-   %%NAME%% %%VERSION%%
   ---------------------------------------------------------------------------*)
 
 (** Unicode text segmentation.
@@ -26,8 +25,7 @@
     see {{:https://github.com/dbuenzli/uuseg/issues/5}this issue} for
     details.
 
-    {e %%VERSION%% — Unicode version %%UNICODE_VERSION%% —
-       {{:%%PKG_HOMEPAGE%% }homepage}}
+    {e Unicode version %%UNICODE_VERSION%%}
 
     {3 References}
     {ul
