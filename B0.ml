@@ -76,7 +76,7 @@ let default =
         "ocamlfind", {|build|};
         "ocamlbuild", {|build|};
         "topkg", {|build & >= "1.0.3"|};
-        "uucp", {|>= "13.0.0" & < "14.0.0"|}
+        "uucp", {|>= "14.0.0" & < "15.0.0"|}
       ]
 
   in
