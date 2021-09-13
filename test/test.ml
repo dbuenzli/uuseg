@@ -278,8 +278,26 @@ let test_uuseg_string () =
   test_string_list (fold8 `Line_break "ab cd") ["ab "; "cd"];
   ()
 
+let test_LB30b_assumption () =
+  let rec loop u =
+    let c = Uucp.Emoji.is_extended_pictographic u &&
+            Uucp.Gc.general_category u = `Cn
+    in
+    if c then begin
+      if Uucp.Break.line u = `ID  then () else
+      (log "LB30b assumption failure for U+%04d" (Uchar.to_int u))
+    end;
+    if Uchar.equal u Uchar.max then log " PASS!\n" else loop (Uchar.succ u)
+  in
+  loop Uchar.min
+
+  (* This is needed by our implementation of LB30b *)
+
+
 let test g_file w_file s_file l_file =
   try
+    log "Testing LB30b's data assumption.";
+    test_LB30b_assumption ();
     test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file;
     test_conformance `Word "word boundary" [] w_file;
     test_conformance `Sentence "sentence boundary" [] s_file;

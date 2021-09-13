@@ -41,8 +41,8 @@
    LB22                               × IN
    LB23                       (AL|HL) × NU
                                    NU × (AL|HL)
-   LB23a                           PR × (ID|EB|EM)
-                           (ID|EB|EM) × PO
+   LB23a                           PR × (ID|ID30b|EB|EM)
+                     (ID|ID30b|EB|EM) × PO
    LB24                       (PR|PO) × (AL|HL)
                               (AL|HL) × (PR|PO)
    LB25               (CL|CP|CP30|NU) × (PO|PR)
@@ -60,6 +60,7 @@
    LB30a              sot (RI RI)* RI × RI
                     [^RI] (RI RI)* RI × RI
    LB30b                           EB × EM
+                                ID30b x EM
    LB31                           ALL ÷
                                       ÷ ALL
 
@@ -92,6 +93,8 @@ type line =
   | QU | RI | SA | SG | SP | SY | WJ | XX | ZW | ZWJ | Invalid | Sot | Eot
   (* Added to handle LB30 *)
   | OP30 | CP30
+  (* Added to handle Lb30b *)
+  | ID30b
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.line_break. *)
@@ -118,6 +121,9 @@ let line u = match byte_to_line.(Uucp.Break.Low.line u) with
     | `F | `W | `H -> CP
     | _ -> CP30
     end;
+| ID -> (* Decompose because of LB30b, this assumption is tested in test.ml *)
+    if Uucp.Emoji.is_extended_pictographic u &&
+       Uucp.Gc.general_category u = `Cn then ID30b else ID
 | l -> l
 
 type state =
@@ -198,8 +204,8 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
       | (* LB22 *)  _, _, IN -> false
       | (* LB23 *)  _, (AL|HL), NU -> false
       |             _, NU, (AL|HL) -> false
-      | (* LB23a *) _, PR, (ID|EB|EM) -> false
-      |             _, (ID|EB|EM), PO -> false
+      | (* LB23a *) _, PR, (ID|ID30b|EB|EM) -> false
+      |             _, (ID|ID30b|EB|EM), PO -> false
       | (* LB24 *)  _, (PR|PO), (AL|HL) -> false
       |             _, (AL|HL), (PR|PO) -> false
       | (* LB25 *)  _, (CL|CP|CP30|NU), (PO|PR) -> false
@@ -216,6 +222,7 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
       |             _, CP30, (AL|HL|NU) -> false
       | (* LB30a *) _, RI, RI when s.l0_odd_ri -> false
       | (* LB30b *) _, EB, EM -> false
+      |             _, ID30b, EM -> false
       | (* LB31 *)  _, _, _ -> true
 
 let next s = (* moves to the next boundary *)

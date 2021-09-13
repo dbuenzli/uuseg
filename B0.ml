@@ -39,8 +39,14 @@ let usegtrip =
 
 let test =
   let srcs = Fpath.[`File (v "test/test.ml")] in
-  let meta = B0_meta.(empty |> tag test) in
-  let requires = [ uuseg; uuseg_string ] in
+  (* FIXME b0, this is not so good. *)
+  let scope_dir b u = Fut.return (B0_build.scope_dir b u) in
+  let meta =
+    B0_meta.(empty
+             |> tag test
+             |> add B0_unit.Action.exec_cwd scope_dir)
+  in
+  let requires = [ uucp; uuseg; uuseg_string ] in
   B0_ocaml.exe "test" ~doc:"Test segmentation" ~srcs ~meta ~requires
 
 let examples =
