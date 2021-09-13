@@ -93,7 +93,7 @@ type line =
   | QU | RI | SA | SG | SP | SY | WJ | XX | ZW | ZWJ | Invalid | Sot | Eot
   (* Added to handle LB30 *)
   | OP30 | CP30
-  (* Added to handle Lb30b *)
+  (* Added to handle LB30b *)
   | ID30b
 
 (* WARNING. The indexes used here need to be synchronized with those
@@ -133,8 +133,8 @@ type state =
 
 type t =
   { mutable state : state;                                 (* current state. *)
-    mutable l1 : line; mutable l1_rewrite : line; (* l1 according to lb9/lb10 *)
-    mutable l0 : line; mutable l0_rewrite : line; (* l0 according to lb9/lb10 *)
+    mutable l1 : line; mutable l1_rewrite : line; (* l1 according to LB9/LB10 *)
+    mutable l0 : line; mutable l0_rewrite : line; (* l0 according to LB9/LB10 *)
     mutable l0_odd_ri : bool; (* odd number of RI on the left of break point. *)
     mutable r0 : line; (* of first element in r0_data *)
     mutable r0_data : [`Uchar of Uchar.t ]; (* data in r0 *)
