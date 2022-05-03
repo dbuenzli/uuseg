@@ -28,7 +28,7 @@ Uuseg can be installed with `opam`:
     opam install uuseg
     opam install uutf uuseg # for support on OCaml UTF-X encoded strings
 
-If you don't use `opam` consult the [`opam`](opam) file for build
+If you don't use `opam` consult the [`opam`](uuseg.opam) file for build
 instructions.
 
 
