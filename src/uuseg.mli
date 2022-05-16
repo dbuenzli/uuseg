@@ -209,9 +209,9 @@ let utf_8_segments seg s =
   let rec add acc v = match Uuseg.add seg v with
   | `Uchar u -> Uutf.Buffer.add_utf_8 b u; add acc `Await
   | `Boundary -> add (flush_segment acc) `Await
-  | `Await -> acc
+  | `Await | `End -> acc
   in
-  let rec uchar acc _ = function
+  let uchar acc _ = function
   | `Uchar _ as u -> add acc u
   | `Malformed _ -> add acc (`Uchar Uutf.u_rep)
   in
