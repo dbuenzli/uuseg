@@ -168,12 +168,15 @@ let cmd =
         See http://erratique.ch/software/uuseg for contact
         information."; ]
   in
-  Term.(pure do_cmd $ cmd $ seg $ file $ enc $ delim $ ascii),
-  Term.info "usegtrip" ~version:"%%VERSION%%" ~doc ~man
+  Cmd.v (Cmd.info "usegtrip" ~version:"%%VERSION%%" ~doc ~man)
+    Term.(const do_cmd $ cmd $ seg $ file $ enc $ delim $ ascii)
 
-let () = match Term.eval cmd with
-| `Error _ -> exit 1
-| _ -> if !input_malformed then exit 2 else exit 0
+let main () = match Cmd.eval cmd with
+| 0 -> if !input_malformed then exit 2 else exit 0
+| c when c = Cmd.Exit.cli_error -> exit 1
+| c -> exit c
+
+let () = if !Sys.interactive then () else main ()
 
 (*---------------------------------------------------------------------------
    Copyright (c) 2014 The uuseg programmers
