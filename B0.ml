@@ -1,6 +1,9 @@
 open B0_kit.V000
 open Result.Syntax
 
+let unicode_version = 15, 0, 0, None (* Adjust on new releases *)
+let next_major = let maj, _, _, _ = unicode_version in (maj + 1), 0, 0, None
+
 (* OCaml library names *)
 
 let uuseg = B0_ocaml.libname "uuseg"
@@ -9,9 +12,6 @@ let uuseg_string = B0_ocaml.libname "uuseg.string"
 let uucp = B0_ocaml.libname "uucp"
 let uutf = B0_ocaml.libname "uutf"
 let cmdliner = B0_ocaml.libname "cmdliner"
-
-
-let unicode_version = "15.0.0"
 
 (* Libraries *)
 
@@ -61,7 +61,7 @@ let examples =
 
 let test_uri kind =
   Fmt.str "http://www.unicode.org/Public/%s/ucd/auxiliary/%sBreakTest.txt"
-    unicode_version kind
+    (String.of_version unicode_version) kind
 
 let download_tests =
   B0_cmdlet.v "download-tests" ~doc:"Download the UCD break tests" @@
@@ -108,7 +108,8 @@ let default =
         "ocamlfind", {|build|};
         "ocamlbuild", {|build|};
         "topkg", {|build & >= "1.0.3"|};
-        "uucp", {|>= "14.0.0" & < "15.0.0"|}
+        "uucp", Fmt.str {|>= "%s" & < "%s"|}
+          (String.of_version unicode_version) (String.of_version next_major)
       ]
 
   in
