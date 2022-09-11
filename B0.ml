@@ -10,6 +10,9 @@ let uucp = B0_ocaml.libname "uucp"
 let uutf = B0_ocaml.libname "uutf"
 let cmdliner = B0_ocaml.libname "cmdliner"
 
+
+let unicode_version = "15.0.0"
+
 (* Libraries *)
 
 let uuseg_lib =
@@ -53,6 +56,30 @@ let examples =
   let meta = B0_meta.(empty |> tag test) in
   let requires = [uutf; uuseg] in
   B0_ocaml.exe "examples" ~doc:"Examples" ~srcs ~meta ~requires
+
+(* Cmdlets *)
+
+let test_uri kind =
+  Fmt.str "http://www.unicode.org/Public/%s/ucd/auxiliary/%sBreakTest.txt"
+    unicode_version kind
+
+let download_tests =
+  B0_cmdlet.v "download-tests" ~doc:"Download the UCD break tests" @@
+  fun env _args -> B0_cmdlet.exit_of_result @@
+  let get kind =
+    let test_uri = test_uri kind in
+    let test_file = Fpath.v (Fmt.str "test/%sBreakTest.txt" kind) in
+    let test_file = B0_cmdlet.in_scope_dir env test_file in
+    let stdout = Os.Cmd.out_file ~force:true ~make_path:true test_file in
+    let* curl = Os.Cmd.get Cmd.(atom "curl" % "-f" % "-#" % "-S") in
+    Log.app (fun m -> m "Downloading %s" test_uri);
+    Os.Cmd.run Cmd.(curl % test_uri) ~stdout
+  in
+  let* () = get "Line" in
+  let* () = get "Grapheme" in
+  let* () = get "Word" in
+  let* () = get "Sentence" in
+  Ok ()
 
 (* Packs *)
 

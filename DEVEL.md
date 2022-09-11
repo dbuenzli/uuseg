@@ -1,7 +1,10 @@
-For the `topkg test` to work download the Unicode segmentation test files
-to the `test` directory this can simply done by:
+# Reference tests
 
-    ocaml ./pkg/get_tests.ml
-    topkg build
-    topkg test
-            
+To download the tests for the version mentioned in `B0.ml` issue:
+
+    b0 cmd download-tests
+
+This dowloads the Unicode segmentation tests file to the `test` 
+directory. You can then check them via: 
+
+    b0 -a test
