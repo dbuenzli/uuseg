@@ -102,7 +102,9 @@ let default =
          "--with-cmdliner" "%{cmdliner:installed}%" ]]|}
     |> tag B0_opam.tag
     |> add B0_opam.Meta.depopts [ "uutf", ""; "cmdliner", ""]
-    |> add B0_opam.Meta.conflicts [ "uutf", {|< "1.0.0"|}]
+    |> add B0_opam.Meta.conflicts
+      [ "uutf", {|< "1.0.0"|};
+        "cmdliner", {|< "1.1.0"|}]
     |> add B0_opam.Meta.depends
       [ "ocaml", {|>= "4.03.0"|};
         "ocamlfind", {|build|};

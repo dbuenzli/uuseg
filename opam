@@ -1,26 +1,7 @@
 opam-version: "2.0"
 name: "uuseg"
-synopsis: """Unicode text segmentation for OCaml"""
-maintainer: ["Daniel Bünzli <daniel.buenzl i@erratique.ch>"]
-authors: ["The uuseg programmers"]
-homepage: "https://erratique.ch/software/uuseg"
-doc: "https://erratique.ch/software/uuseg/doc/"
-dev-repo: "git+https://erratique.ch/repos/uuseg.git"
-bug-reports: "https://github.com/dbuenzli/uuseg/issues"
-license: ["ISC"]
-tags: ["unicode" "text" "segmentation" "org:erratique"]
-depends: ["ocaml" {>= "4.03.0"}
-          "ocamlfind" {build}
-          "ocamlbuild" {build}
-          "topkg" {build & >= "1.0.3"}
-          "uucp" {>= "14.0.0" & < "15.0.0"}]
-depopts: ["uutf"
-          "cmdliner"]
-conflicts: ["uutf" {< "1.0.0"}]
-build: [["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
-         "--with-uutf" "%{uutf:installed}%"
-         "--with-cmdliner" "%{cmdliner:installed}%" ]]
-description: """
+synopsis: "Unicode text segmentation for OCaml"
+description: """\
 Uuseg is an OCaml library for segmenting Unicode text. It implements
 the locale independent [Unicode text segmentation algorithms][1] to
 detect grapheme cluster, word and sentence boundaries and the
@@ -39,3 +20,34 @@ OCaml UTF-X encoded strings. It is distributed under the ISC license.
 [2]: http://www.unicode.org/reports/tr14/
 
 Homepage: http://erratique.ch/software/uuseg"""
+maintainer: "Daniel Bünzli <daniel.buenzl i@erratique.ch>"
+authors: "The uuseg programmers"
+license: "ISC"
+tags: ["unicode" "text" "segmentation" "org:erratique"]
+homepage: "https://erratique.ch/software/uuseg"
+doc: "https://erratique.ch/software/uuseg/doc/"
+bug-reports: "https://github.com/dbuenzli/uuseg/issues"
+depends: [
+  "ocaml" {>= "4.03.0"}
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "topkg" {build & >= "1.0.3"}
+  "uucp" {>= "15.0.0" & < "16.0.0"}
+]
+depopts: ["uutf" "cmdliner"]
+conflicts: [
+  "uutf" {< "1.0.0"}
+  "cmdliner" {< "1.1.0"}
+]
+build: [
+  "ocaml"
+  "pkg/pkg.ml"
+  "build"
+  "--dev-pkg"
+  "%{dev}%"
+  "--with-uutf"
+  "%{uutf:installed}%"
+  "--with-cmdliner"
+  "%{cmdliner:installed}%"
+]
+dev-repo: "git+https://erratique.ch/repos/uuseg.git"
