@@ -12,7 +12,7 @@ tests (see below).
 Update the opam file with: 
 
 ```
-b0 cmd .opam.file > opam
+b0 -- .opam.file > opam
 ```
 
 [UAX29]: https://www.unicode.org/reports/tr29/
@@ -24,8 +24,8 @@ b0 cmd .opam.file > opam
 To download the reference segmentation test files for the version 
 mentioned in `B0.ml` to the `test` directory issue:
 
-    b0 cmd download-tests
+    b0 -- download-tests
 
 You can then check them via: 
 
-    b0 -a test
+    b0 -- test
