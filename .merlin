@@ -1,4 +1,5 @@
 PKG uutf uucp cmdliner b0.kit
 S src
 S test
+B _b0/**
 B _build/**

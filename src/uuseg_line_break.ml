@@ -39,12 +39,12 @@
    LB21a                   HL (HY|BA) ×
    LB21b                           SY × HL
    LB22                               × IN
-   LB23                       (AL|HL) × NU
-                                   NU × (AL|HL)
+   LB23               (AL|AL_circ|HL) × NU
+                                   NU × (AL|AL_circ|HL)
    LB23a                           PR × (ID|ID30b|EB|EM)
                      (ID|ID30b|EB|EM) × PO
-   LB24                       (PR|PO) × (AL|HL)
-                              (AL|HL) × (PR|PO)
+   LB24                       (PR|PO) × (AL|AL_circ|HL)
+                      (AL|AL_circ|HL) × (PR|PO)
    LB25               (CL|CP|CP30|NU) × (PO|PR)
                               (PO|PR) × (OP|OP30)
                   (PO|PR|HY|IS|NU|SY) × NU
@@ -53,10 +53,14 @@
                               (JT|H3) × JT
    LB27              (JL|JV|JT|H2|H3) × (IN|PO)
                                    PR × (JL|JV|JT|H2|H3)
-   LB28                       (AL|HL) × (AL|HL)
+   LB28               (AL|AL_circ|HL) × (AL|AL_circ|HL)
+   LB28a                           AP × (AK|AL_circ|AS)
+                      (AK|AL_circ|AS) × (VF|VI)
+                   (AK|AL_circ|AS) VI × (AK|AL_circ)
+                      (AK|AL_circ|AS) × (AK|AL_circ|AS) VF
    LB29                            IS × (AL|HL)
-   LB30                    (AL|HL|NU) × OP30
-                                 CP30 × (AL|HL|NU)
+   LB30            (AL|AL_circ|HL|NU) × OP30
+                                 CP30 × (AL|AL_circ|HL|NU)
    LB30a              sot (RI RI)* RI × RI
                     [^RI] (RI RI)* RI × RI
    LB30b                           EB × EM
@@ -81,16 +85,20 @@
 
 
                             ---??--->
-                     +----+----++----+
-                  ...| l1 | l0 || r0 |
-                     +----+----++----+
+                     +----+----++----+----+
+                  ...| l1 | l0 || r0 | r1 |
+                     +----+----++----+----+
    already returned to client /  \ buffered in segmenter *)
 
 type line =
-  | AI | AL | B2 | BA | BB | BK | CB | CJ | CL | CM | CP
+  | AI | AK | AL | AP | AS | B2 | BA | BB | BK | CB | CJ | CL | CM | CP
   | CR | EX | EB | EM | GL | H2 | H3 | HL | HY | ID | IN
   | IS | JL | JT | JV | LF | NL | NS | NU | OP | PO | PR
-  | QU | RI | SA | SG | SP | SY | WJ | XX | ZW | ZWJ | Invalid | Sot | Eot
+  | QU | RI | SA | SG | SP | SY | VF | VI | WJ | XX | ZW | ZWJ | Invalid | Sot
+  | Eot
+  (* Added to handle the U+255C constant in LB28a. We need to split AL (the
+     class of U+255C), the full set is AL + AL_circ *)
+  | AL_circ
   (* Added to handle LB30 *)
   | OP30 | CP30
   (* Added to handle LB30b *)
@@ -100,10 +108,11 @@ type line =
    assigned by uucp for Uucp.Break.Low.line_break. *)
 
 let byte_to_line =
-  [| AL (* LB1 AI → AL *); AL; B2; BA; BB; BK; CB; NS (* LB1 CJ → NS *); CL;
+  [| AL (* LB1 AI → AL *); AK; AL; AP; AS; B2; BA; BB; BK; CB;
+     NS (* LB1 CJ → NS *); CL;
      CM; CP; CR; EX; EB; EM; GL; H2; H3; HL; HY; ID; IN; IS; JL; JT; JV; LF;
-     NL; NS; NU; OP; PO; PR; QU; RI; SA; AL (* LB1 SG → AL *); SP; SY; WJ;
-     AL (* LB1 XX → AL *); ZW; ZWJ |]
+     NL; NS; NU; OP; PO; PR; QU; RI; SA; AL (* LB1 SG → AL *); SP; SY; VF; VI;
+     WJ; AL (* LB1 XX → AL *); ZW; ZWJ |]
 
 let line u = match byte_to_line.(Uucp.Break.Low.line u) with
 | SA -> (* LB1 for SA *)
@@ -124,6 +133,8 @@ let line u = match byte_to_line.(Uucp.Break.Low.line u) with
 | ID -> (* Decompose because of LB30b, this assumption is tested in test.ml *)
     if Uucp.Emoji.is_extended_pictographic u &&
        Uucp.Gc.general_category u = `Cn then ID30b else ID
+| AL ->
+    if Uchar.to_int u = 0x25CC then AL_circ else AL
 | l -> l
 
 type state =
@@ -136,9 +147,12 @@ type t =
     mutable l1 : line; mutable l1_rewrite : line; (* l1 according to LB9/LB10 *)
     mutable l0 : line; mutable l0_rewrite : line; (* l0 according to LB9/LB10 *)
     mutable l0_odd_ri : bool; (* odd number of RI on the left of break point. *)
-    mutable r0 : line; (* of first element in r0_data *)
+    mutable r0 : line; (* of element in r0_data *)
     mutable r0_data : [`Uchar of Uchar.t ]; (* data in r0 *)
-    mutable mandatory : bool; (* [true] if break is mandatory. *) }
+    mutable r1 : line; (* of element in r1_data *)
+    mutable r1_data : [`Uchar of Uchar.t ]; (* data in r1 *)
+    mutable mandatory : bool; (* [true] if break is mandatory. *)
+    mutable ended : bool; (* [true] if [`End was added]. *) }
 
 let nul_buf = `Uchar (Uchar.unsafe_of_int 0x0000)
 let create () =
@@ -148,7 +162,10 @@ let create () =
     l0_odd_ri = false;
     r0 = Invalid;
     r0_data = nul_buf (* overwritten *);
-    mandatory = false; }
+    r1 = Invalid;
+    r1_data = nul_buf (* overwritten *);
+    mandatory = false;
+    ended = false }
 
 let mandatory s = s.mandatory
 let copy s = { s with state = s.state }
@@ -160,7 +177,7 @@ let is_lb12_l0 = function SP | BA | HY -> false | _ -> true
 let has_break s = (* N.B. sets s.mandatory by side effect. *)
   let mandatory s = s.mandatory <- true; true in
   s.mandatory <- false;
-  match s.l1, s.l0 (**),(**) s.r0 with
+  match s.l1, s.l0 (**),(**) s.r0 (*, s.r1 we don't need it here *) with
   (* LB1 is handled by [byte_to_line] and [line]. *)
   | (* LB2 *)  _, Sot, _ -> false
   | (* LB3 *)  _, _, Eot -> mandatory s
@@ -178,52 +195,57 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
   | _ -> (* apply LB9/LB10 rewrite and match *)
       let l1 = if is_lb9_X s.l1_rewrite then s.l1_rewrite else s.l1 in
       let l0 = if is_lb9_X s.l0_rewrite then s.l0_rewrite else s.l0 in
-      match (lb10_rewrite l1), (lb10_rewrite l0), (lb10_rewrite s.r0) with
-      | (* LB11 *)  _, _, WJ -> false
-      |             _, WJ, _ -> false
-      | (* LB12 *)  _, GL, _ -> false
-      | (* LB12a *) _, l0, GL when is_lb12_l0 l0 -> false
-      | (* LB13 *)  _, _, (CL|CP|CP30|EX|IS|SY) -> false
-      | (* LB14 *)  _, (OP|OP30), _ -> false
-      |             (OP|OP30), SP, _ -> false
-      | (* LB15 *)  _, QU, (OP|OP30) -> false
-      |             QU, SP, (OP|OP30) -> false
-      | (* LB16 *)  _, (CL|CP|CP30), NS -> false
-      |             (CL|CP|CP30), SP, NS -> false
-      | (* LB17 *)  _, B2, B2 -> false
-      |             B2, SP, B2 -> false
-      | (* LB18 *)  _, SP, _ -> true
-      | (* LB19 *)  _, _, QU -> false
-      |             _, QU, _ -> false
-      | (* LB20 *)  _, _, CB -> true
-      |             _, CB, _ -> true
-      | (* LB21 *)  _, _, (BA|HY|NS) -> false
-      |             _, BB, _ -> false
-      | (* LB21a *) HL, (HY|BA), _ -> false
-      | (* LB21b *) _, SY, HL -> false
-      | (* LB22 *)  _, _, IN -> false
-      | (* LB23 *)  _, (AL|HL), NU -> false
-      |             _, NU, (AL|HL) -> false
-      | (* LB23a *) _, PR, (ID|ID30b|EB|EM) -> false
-      |             _, (ID|ID30b|EB|EM), PO -> false
-      | (* LB24 *)  _, (PR|PO), (AL|HL) -> false
-      |             _, (AL|HL), (PR|PO) -> false
-      | (* LB25 *)  _, (CL|CP|CP30|NU), (PO|PR) -> false
-      |             _, (PO|PR), (OP|OP30) -> false
-      |             _, (PO|PR|HY|IS|NU|SY), NU -> false
-      | (* LB26 *)  _, JL, (JL|JV|H2|H3) -> false
-      |             _, (JV|H2), (JV|JT) -> false
-      |             _, (JT|H3), JT -> false
-      | (* LB27 *)  _, (JL|JV|JT|H2|H3), PO -> false
-      |             _, PR, (JL|JV|JT|H2|H3) -> false
-      | (* LB28 *)  _, (AL|HL), (AL|HL) -> false
-      | (* LB29 *)  _, IS, (AL|HL) -> false
-      | (* LB30 *)  _, (AL|HL|NU), OP30 -> false
-      |             _, CP30, (AL|HL|NU) -> false
-      | (* LB30a *) _, RI, RI when s.l0_odd_ri -> false
-      | (* LB30b *) _, EB, EM -> false
-      |             _, ID30b, EM -> false
-      | (* LB31 *)  _, _, _ -> true
+      match (lb10_rewrite l1), (lb10_rewrite l0),
+            (lb10_rewrite s.r0), (lb10_rewrite s.r1) with
+      | (* LB11 *)  _, _, WJ, _ -> false
+      |             _, WJ, _, _ -> false
+      | (* LB12 *)  _, GL, _, _ -> false
+      | (* LB12a *) _, l0, GL, _ when is_lb12_l0 l0 -> false
+      | (* LB13 *)  _, _, (CL|CP|CP30|EX|IS|SY), _ -> false
+      | (* LB14 *)  _, (OP|OP30), _, _ -> false
+      |             (OP|OP30), SP, _, _ -> false
+      | (* LB15 *)  _, QU, (OP|OP30), _ -> false
+      |             QU, SP, (OP|OP30), _ -> false
+      | (* LB16 *)  _, (CL|CP|CP30), NS, _ -> false
+      |             (CL|CP|CP30), SP, NS, _ -> false
+      | (* LB17 *)  _, B2, B2, _ -> false
+      |             B2, SP, B2, _ -> false
+      | (* LB18 *)  _, SP, _, _ -> true
+      | (* LB19 *)  _, _, QU, _ -> false
+      |             _, QU, _, _ -> false
+      | (* LB20 *)  _, _, CB, _ -> true
+      |             _, CB, _, _ -> true
+      | (* LB21 *)  _, _, (BA|HY|NS), _ -> false
+      |             _, BB, _, _ -> false
+      | (* LB21a *) HL, (HY|BA), _, _ -> false
+      | (* LB21b *) _, SY, HL, _ -> false
+      | (* LB22 *)  _, _, IN, _ -> false
+      | (* LB23 *)  _, (AL|AL_circ|HL), NU, _ -> false
+      |             _, NU, (AL|AL_circ|HL), _ -> false
+      | (* LB23a *) _, PR, (ID|ID30b|EB|EM), _ -> false
+      |             _, (ID|ID30b|EB|EM), PO, _ -> false
+      | (* LB24 *)  _, (PR|PO), (AL|AL_circ|HL), _ -> false
+      |             _, (AL|AL_circ|HL), (PR|PO), _ -> false
+      | (* LB25 *)  _, (CL|CP|CP30|NU), (PO|PR), _ -> false
+      |             _, (PO|PR), (OP|OP30), _ -> false
+      |             _, (PO|PR|HY|IS|NU|SY), NU, _ -> false
+      | (* LB26 *)  _, JL, (JL|JV|H2|H3), _ -> false
+      |             _, (JV|H2), (JV|JT), _ -> false
+      |             _, (JT|H3), JT, _ -> false
+      | (* LB27 *)  _, (JL|JV|JT|H2|H3), PO, _ -> false
+      |             _, PR, (JL|JV|JT|H2|H3), _ -> false
+      | (* LB28 *)  _, (AL|AL_circ|HL), (AL|AL_circ|HL), _ -> false
+      | (* LB28a *) _, AP, (AK|AL_circ|AS), _ -> false
+      |             _, (AK|AL_circ|AS), (VF|VI), _ -> false
+      |             (AK|AL_circ|AS), VI, (AK|AL_circ), _ -> false
+      |             _, (AK|AL_circ|AS), (AK|AL_circ|AS), VF -> false
+      | (* LB29 *)  _, IS, (AL|AL_circ|HL), _ -> false
+      | (* LB30 *)  _, (AL|AL_circ|HL|NU), OP30, _ -> false
+      |             _, CP30, (AL|AL_circ|HL|NU), _ -> false
+      | (* LB30a *) _, RI, RI, _ when s.l0_odd_ri -> false
+      | (* LB30b *) _, EB, EM, _ -> false
+      |             _, ID30b, EM, _ -> false
+      | (* LB31 *)  _, _, _, _ -> true
 
 let next s = (* moves to the next boundary *)
   s.l1 <- s.l0;
@@ -239,20 +261,33 @@ let next s = (* moves to the next boundary *)
       s.l0_odd_ri <-
         (match s.l0_rewrite with RI -> not s.l0_odd_ri | _ -> false);
   end;
-  s.r0 <- Invalid
+  let data = s.r0_data in
+  s.r0 <- s.r1;
+  s.r0_data <- s.r1_data;
+  s.r1 <- Invalid;
+  s.r1_data <- nul_buf;
+  (data :> Uuseg_base.ret)
 
-let ended s = s.r0 = Eot
-let flush s =
-  if ended s then `End else
-  (next s; s.state <- Fill; (s.r0_data :> Uuseg_base.ret))
+let need_fill s = s.r0 = Invalid || s.r1 = Invalid
+
+let flush s = match s.ended with
+| false ->
+    let ret = next s in
+    (if need_fill s then s.state <- Fill else s.state <- Decide);
+    ret
+| true ->
+    match s.r0 with
+    | Eot -> `End
+    | _ -> s.state <- Decide; next s
 
 let decide s = if has_break s then (s.state <- Flush; `Boundary) else flush s
 
 let add s = function
 | `Uchar u as add ->
-    if ended s then Uuseg_base.err_ended add else
+    if s.ended then Uuseg_base.err_ended add else
     begin match s.state with
-    | Fill -> s.r0_data <- add; s.r0 <- line u; decide s
+    | Fill when s.r0 = Invalid -> s.r0_data <- add; s.r0 <- line u; `Await
+    | Fill -> s.r1_data <- add; s.r1 <- line u; decide s
     | Flush | Decide -> Uuseg_base.err_exp_await add
     end
 | `Await ->
@@ -262,8 +297,12 @@ let add s = function
     | Fill -> `Await
     end
 | `End ->
-    if ended s then Uuseg_base.err_ended `End else
+    if s.ended then Uuseg_base.err_ended `End else
     begin match s.state with
-    | Fill -> s.r0 <- Eot; if s.l0 = Sot then (* eps *) `End else decide s
+    | Fill ->
+        s.ended <- true;
+        (if s.r0 = Invalid then s.r0 <- Eot else s.r1 <- Eot);
+        if s.l0 = Sot && s.r0 = Eot then (* empty string *) `End else
+        decide s
     | Flush | Decide -> Uuseg_base.err_exp_await `End
     end
