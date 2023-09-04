@@ -1,4 +1,7 @@
-(* This code is in the public domain *)
+(*---------------------------------------------------------------------------
+   Copyright (c) 2014 The uuseg programmers. All rights reserved.
+   SPDX-License-Identifier: CC0-1.0
+  ---------------------------------------------------------------------------*)
 
 let utf_8_segments seg s =
   let b = Buffer.create 42 in

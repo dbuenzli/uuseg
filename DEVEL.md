@@ -1,30 +1,43 @@
 # New unicode release
 
-Update the new Unicode version number in [`B0.ml`](B0.ml).
+First you will an install of [`uucp`] that supports the new Unicode
+version installed.
 
-Before the formal Unicode release check the proposed update of [UAX29]
-and [UAX14]. If the rules need to be adjusted then do so.
+You can then bump the Unicode release number at the top of the `B0.ml`
+file. Veryify that everything is as expected with:
 
-If there are only data additions then simply update [Uucp] with the
-new data, compile Uuseg against this new uucp and check the reference
-tests (see below).
+    b0 -- unicode-version
 
 Update the opam file with: 
 
-```
-b0 -- .opam.file > opam
-```
+    b0 -- .opam.file > opam
+
+Before the formal Unicode release date check the proposed update of
+[UAX29] and [UAX14]. If the rules need to be adjusted then do so.
+
+Compile Uuseg against the uucp and check the reference tests (see
+below).
 
 [UAX29]: https://www.unicode.org/reports/tr29/
 [UAX14]: https://www.unicode.org/reports/tr14/
-[Uucp]: https://erratique.ch/software/uucp
+[`uucp`]: https://erratique.ch/software/uucp
 
 # Reference tests
 
-To download the reference segmentation test files for the version 
-mentioned in `B0.ml` to the `test` directory issue:
+To test the package on the reference segmentation tests you must 
+download a copy of the tests to:
+
+    test/LineBreakTest.txt
+    test/GraphemeBreakTest.txt
+    test/WordBreakTest.txt
+    test/SentenceBreakTest.txt
+
+These file are ignored by git. If you have `curl` in your `PATH`
+you can simply issue:
 
     b0 -- download-tests
+
+this downloads the tests for the Unicode version mentioned in `B0.ml`. 
 
 You can then check them via: 
 

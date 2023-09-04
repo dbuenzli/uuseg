@@ -3,27 +3,14 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(* Checks that Uuseg passes Unicode's Segmentation and Line break conformance
-   tests and also performs other tests. *)
+(* Uuseg tests, including Unicode's Segmentation and Line break conformance
+   tests. *)
 
 let str = Format.asprintf
 let log f = Format.eprintf (f ^^ "@?")
 let fail fmt =
   let fail _ = failwith (Format.flush_str_formatter ()) in
   Format.kfprintf fail Format.str_formatter fmt
-
-let split_string s sep =                                          (* Grrrr. *)
-  let rec split accum j =
-    let i = try (String.rindex_from s j sep) with Not_found -> -1 in
-    if (i = -1) then
-      let p = String.sub s 0 (j + 1) in
-      if p <> "" then p :: accum else accum
-    else
-    let p = String.sub s (i + 1) (j - i) in
-    let accum' = if p <> "" then p :: accum else accum in
-    split accum' (i - 1)
-  in
-  split [] (String.length s - 1)
 
 let stack_to_loc stack =                                         (* Grrrrr. *)
   let stack = Printexc.raw_backtrace_to_string stack in
@@ -114,10 +101,10 @@ let decode_conformance_specs ignores ic =
     | None -> List.rev specs
     | Some l ->
         if String.length l > 0 && l.[0] = '#' then loop specs else
-        try begin match split_string l '#' with
+        try begin match String.split_on_char '#' l with
         | [comment] -> loop specs
         | test :: comment ->
-            let spec = split_string test ' ' in
+            let spec = String.split_on_char ' ' test in
             begin try
               let rec to_spec acc = function
               | ( "\xC3\x97" (* × *) | "\xC3\x97\t" ) :: rest ->
@@ -241,7 +228,7 @@ let rec seq_of_spec acc = function
 let test_conformance seg name ignores inf =
   try
     log "Testing conformance of %s\n" name;
-    let ic = open_in inf in
+    let ic = open_in_bin inf in
     let specs = decode_conformance_specs ignores ic in
     let test spec = test seg (seq_of_spec [] spec) spec in
     List.iter test specs;
@@ -251,6 +238,7 @@ let test_conformance seg name ignores inf =
 let uchar = Uchar.of_int
 
 let test_others () =
+  log "Making other tests.\n";
   let g = `Grapheme_cluster in
   test g [] [];
   test g [uchar 0x0020] [`B; `U (uchar 0x0020); `B;];
@@ -265,6 +253,7 @@ let test_others () =
   ()
 
 let test_uuseg_string () =
+  log "Testing Uutf_string.\n";
   let fold8 seg s =
     List.rev (Uuseg_string.fold_utf_8 seg (fun acc s -> s :: acc) [] s)
   in
@@ -279,43 +268,39 @@ let test_uuseg_string () =
   ()
 
 let test_LB30b_assumption () =
+  log "Testing LB30b's data assumption. ";
+  (* This is needed by our implementation of LB30b *)
   let rec loop u =
     let c = Uucp.Emoji.is_extended_pictographic u &&
             Uucp.Gc.general_category u = `Cn
     in
     if c then begin
-      if Uucp.Break.line u = `ID  then () else
+      if Uucp.Break.line u = `ID then () else
       (log "LB30b assumption failure for U+%04d" (Uchar.to_int u))
     end;
-    if Uchar.equal u Uchar.max then log " PASS!\n" else loop (Uchar.succ u)
+    if Uchar.equal u Uchar.max then () else loop (Uchar.succ u)
   in
   loop Uchar.min
 
-  (* This is needed by our implementation of LB30b *)
-
-
 let test g_file w_file s_file l_file =
   try
-    log "Testing LB30b's data assumption.";
     test_LB30b_assumption ();
     test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file;
     test_conformance `Word "word boundary" [] w_file;
     test_conformance `Sentence "sentence boundary" [] s_file;
     test_conformance `Line_break "line break boundary" line_break_ignores
       l_file;
-    log "Making other tests.\n";
     test_others ();
-    log "Testing Uutf_string.\n";
     test_uuseg_string ();
     if !fail > 0
-    then log "There %d FAILURES out of %d tests.\n" !fail !test_case
-    else log "Success on %d tests!\n" !test_case
+    then log "%d \x1B[31mFAILURES\x1B[0m out of %d tests.\n" !fail !test_case
+    else log "\x1B[32mSuccess\x1B[0m on %d tests!\n" !test_case
   with Sys_error e -> log "%s\n" e; exit 1
 
 let main () =
   let usage = Printf.sprintf
     "Usage: %s [INFILE]\n\
-    \ Runs the Unicode segmentation conformance test.\n\
+    \ Runs the Unicode segmentation conformance tests.\n\
     Options:" (Filename.basename Sys.executable_name)
   in
   let err _ = raise (Arg.Bad "no positional argument supported") in
@@ -325,13 +310,13 @@ let main () =
   let l_file = ref "test/LineBreakTest.txt" in
   let options =
     [ "-g", Arg.String (fun f -> g_file := f),
-      "Specifies the GraphemeBreakTest.txt file";
+      str "Specifies the GraphemeBreakTest.txt file. Defaults to %s" !g_file;
       "-w", Arg.String (fun f -> w_file := f),
-      "Specifies the WordBreakTest.txt file";
+      str "Specifies the WordBreakTest.txt file. Defaults to %s" !w_file;
       "-s", Arg.String (fun f -> s_file := f),
-      "Specifies the SentenceBreakTest.txt file";
+      str "Specifies the SentenceBreakTest.txt file. Defaults to %s" !s_file;
       "-l", Arg.String (fun f -> l_file := f),
-      "Specifies the LineBreakTest.txt file"; ]
+      str "Specifies the LineBreakTest.txt file. Defaults to %s" !l_file]
   in
   Arg.parse (Arg.align options) err usage;
   test !g_file !w_file !s_file !l_file

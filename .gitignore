@@ -1,10 +1,5 @@
 _b0
 _build
 tmp
-*~
-\.\#*
-\#*#
-*.native
-*.byte
 *.install
 test/*Test.txt
