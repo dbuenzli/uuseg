@@ -20,17 +20,15 @@
     Consult the {{!basics}basics}, {{!limits}limitations} and
     {{!examples}examples} of use.
 
-    {e Unicode version %%UNICODE_VERSION%%}
-
     {3 References}
     {ul
-    {- The Unicode Consortium.
+    {-
     {e {{:http://www.unicode.org/versions/latest}The Unicode Standard}}.
     (latest version)}
-    {- Mark Davis.
+    {-
     {e {{:http://www.unicode.org/reports/tr29/}UAX #29 Unicode Text
     Segmentation}}. (latest version)}
-    {- Andy Heninger.
+    {-
     {e {{:http://www.unicode.org/reports/tr14/}UAX #14 Unicode Line Breaking
     Algorithm}}. (latest version)}
     {- Web based {{:http://unicode.org/cldr/utility/breaks.jsp}ICU
@@ -45,18 +43,22 @@ val unicode_version : string
 type custom
 (** The type for custom segmenters. See {!val:custom}. *)
 
-type boundary = [ `Grapheme_cluster | `Word | `Sentence | `Line_break
-                | `Custom of custom ]
-(** The type for boundaries.
-    {ul
-    {- [`Grapheme_cluster] determines
-    {{:http://www.unicode.org/glossary/#extended_grapheme_cluster}
-    extended grapheme clusters} boundaries according to UAX 29
-    (corresponds, for most scripts, to user-perceived characters).}
-    {- [`Word] determines word boundaries according to UAX 29.}
-    {- [`Sentence] determines sentence boundaries according to UAX 29.}
-    {- [`Line_break] determines {{!mandatory}mandatory} line breaks and
-       line break opportunities according to UAX 14.}} *)
+type boundary =
+  [ `Grapheme_cluster
+       (** {{:http://www.unicode.org/glossary/#extended_grapheme_cluster}
+           Extended grapheme clusters} according to
+           {{:https://www.unicode.org/reports/tr29/#C1-1}UAX29-C1-1} *)
+  | `Word
+      (** Words according to
+          {{:https://www.unicode.org/reports/tr29/#C2-1}UAX29-C2-1} *)
+  | `Sentence
+      (** Sentences according to
+          {{:https://www.unicode.org/reports/tr29/#C3-1}UAX29-C3-1} *)
+  | `Line_break
+      (** Line breaks accordings to
+          {{:http://www.unicode.org/reports/tr14/}UAX #14} *)
+  | `Custom of custom ]
+(** The type for boundaries. *)
 
 val pp_boundary : Format.formatter -> boundary -> unit
 (** [pp_boundary ppf b] prints an unspecified representation of [b]

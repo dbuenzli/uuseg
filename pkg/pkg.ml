@@ -4,16 +4,11 @@
 open Topkg
 
 
-let distrib =
-  (* FIXME OPAMv2, move this to an x-unicode-version field in the opam file. *)
-  let watermarks = ("UNICODE_VERSION", `String "15.0.0") :: Pkg.watermarks in
-  Pkg.distrib ~watermarks ()
-
 let uutf = Conf.with_pkg "uutf"
 let cmdliner = Conf.with_pkg "cmdliner"
 
 let () =
-  Pkg.describe "uuseg" ~distrib @@ fun c ->
+  Pkg.describe "uuseg" @@ fun c ->
   let uutf = Conf.value c uutf in
   let cmdliner = Conf.value c cmdliner in
   Ok [ Pkg.mllib ~api:["Uuseg"] "src/uuseg.mllib";

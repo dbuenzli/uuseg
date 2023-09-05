@@ -3,21 +3,18 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** Unicode text segmentation on UTF-X OCaml strings.
+(** Unicode text segmentation on UTF OCaml strings.
 
-    {!Uuseg} helper functions acting directly on UTF-X encoded OCaml
-    strings.
+    {!Uuseg} functions acting directly on UTF encoded OCaml strings.
 
     {b Warning.} All these functions silently replace malformed encoded Unicode
-    data by a {!Stdlib.Uchar.rep} character.
-
-    {e Unicode version %%UNICODE_VERSION%%} *)
+    data by a {!Stdlib.Uchar.rep} character. *)
 
 (** {1:segment Segment} *)
 
 type 'a folder = 'a -> string -> 'a
 (** The type for segment folders. The function takes an accumulator
-    and a segment. Segments are the UTF-X encoded characters delimited
+    and a segment. Segments are the UTF encoded characters delimited
     by two [`Boundary] occurences. If the segmenter has no initial or
     final [`Boundary], the folding function inserts an implicit
     one. Empty segments – which by definition do not happen with
