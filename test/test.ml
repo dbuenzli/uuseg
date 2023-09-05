@@ -268,7 +268,7 @@ let test_uuseg_string () =
   ()
 
 let test_LB30b_assumption () =
-  log "Testing LB30b's data assumption. ";
+  log "Testing LB30b's data assumption.\n";
   (* This is needed by our implementation of LB30b *)
   let rec loop u =
     let c = Uucp.Emoji.is_extended_pictographic u &&
