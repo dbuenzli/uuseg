@@ -7,13 +7,6 @@ plugin(byte) = "uuseg.cma"
 plugin(native) = "uuseg.cmxs"
 
 package "string" (
-  description = "Unicode text segmentation on UTF-X OCaml strings"
-  directory = "string"
-  version = "%%VERSION_NUM%%"
-  requires = "uuseg uutf"
-  archive(byte) = "uuseg_string.cma"
-  archive(native) = "uuseg_string.cmxa"
-  plugin(byte) = "uuseg_string.cma"
-  plugin(native) = "uuseg_string.cmxs"
-  exists_if = "uuseg_string.cma"
+  warning = "Deprecated. Use the uuseg library, the Uuseg_string module has moved there."
+  requires = "uuseg"
 )

@@ -196,27 +196,29 @@ let seq_words = List.rev (add (List.fold_left add [] seq) `End)
 (** {1:examples Examples}
 
 [utf_8_segments seg s] is the list of UTF-8 encoded [seg] segments of
-the UTF-8 encoded string [s]. This example uses {!Uutf} to fold over
-the characters of [s] and to encode the characters in a standard
-OCaml buffer. Note that this function can be derived directly from
-{!Uuseg_string.fold_utf_8}.
+the UTF-8 encoded string [s].
+
 {[
 let utf_8_segments seg s =
-  let b = Buffer.create 42 in
-  let flush_segment acc =
-    let segment = Buffer.contents b in
-    Buffer.clear b; if segment = "" then acc else segment :: acc
+  let flush_segment buf acc =
+    let segment = Buffer.contents buf in
+    Buffer.clear buf; if segment = "" then acc else segment :: acc
   in
-  let seg = Uuseg.create (seg :> Uuseg.boundary) in
-  let rec add acc v = match Uuseg.add seg v with
-  | `Uchar u -> Uutf.Buffer.add_utf_8 b u; add acc `Await
-  | `Boundary -> add (flush_segment acc) `Await
-  | `Await -> acc
+  let rec add buf acc segmenter v = match Uuseg.add segmenter v with
+  | `Uchar u -> Buffer.add_utf_8_uchar buf u; add buf acc segmenter `Await
+  | `Boundary -> add buf (flush_segment buf acc) segmenter `Await
+  | `Await | `End -> acc
   in
-  let rec uchar acc _ = function
-  | `Uchar _ as u -> add acc u
-  | `Malformed _ -> add acc (`Uchar Uutf.u_rep)
+  let rec loop buf acc s i max segmenter =
+    if i > max then flush_segment buf (add buf acc segmenter `End) else
+    let dec = String.get_utf_8_uchar s i in
+    let acc = add buf acc segmenter (`Uchar (Uchar.utf_decode_uchar dec)) in
+    loop buf acc s (i + Uchar.utf_decode_length dec) max segmenter
   in
-  List.rev (flush_segment (add (Uutf.String.fold_utf_8 uchar [] s) `End))
+  let buf = Buffer.create 42 in
+  let segmenter = Uuseg.create seg in
+  List.rev (loop buf [] s 0 (String.length s - 1) segmenter)
 ]}
-*)
+
+Note that this function can be derived directly from
+{!Uuseg_string.fold_utf_8}. *)

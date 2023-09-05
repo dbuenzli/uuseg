@@ -5,53 +5,54 @@
 
 type 'a folder = 'a -> string -> 'a
 
-let fold
-    (fold : ?pos:int -> ?len:int -> 'a Uutf.String.folder -> 'a -> string -> 'a)
-    enc seg f acc0 s
-  =
-  let b = Buffer.create 42 in
-  let flush_segment acc =
-    let segment = Buffer.contents b in
-    Buffer.clear b; if segment = "" then acc else f acc segment
+let fold dec_uchar enc_uchar seg f acc0 s =
+  let flush_segment buf acc =
+    let segment = Buffer.contents buf in
+    Buffer.clear buf; if segment = "" then acc else f acc segment
   in
-  let seg = Uuseg.create (seg :> Uuseg.boundary) in
-  let rec add acc v = match Uuseg.add seg v with
-  | `Uchar u -> enc b u; add acc `Await
-  | `Boundary -> add (flush_segment acc) `Await
+  let rec add buf acc segmenter v = match Uuseg.add segmenter v with
+  | `Uchar u -> enc_uchar buf u; add buf acc segmenter `Await
+  | `Boundary -> add buf (flush_segment buf acc) segmenter `Await
   | `Await | `End -> acc
   in
-  let rec uchar acc _ = function
-  | `Uchar _ as u -> add acc u
-  | `Malformed _ -> add acc (`Uchar Uutf.u_rep)
+  let rec loop buf acc s i max segmenter =
+    if i > max then flush_segment buf (add buf acc segmenter `End) else
+    let dec = dec_uchar s i in
+    let acc = add buf acc segmenter (`Uchar (Uchar.utf_decode_uchar dec)) in
+    loop buf acc s (i + Uchar.utf_decode_length dec) max segmenter
   in
-  flush_segment (add (fold uchar acc0 s) `End)
+  let buf = Buffer.create 42 in
+  let segmenter = Uuseg.create seg in
+  loop buf acc0 s 0 (String.length s - 1) segmenter
 
 let fold_utf_8 seg f acc0 s =
-  fold Uutf.String.fold_utf_8 Uutf.Buffer.add_utf_8 seg f acc0 s
+  fold String.get_utf_8_uchar Buffer.add_utf_8_uchar seg f acc0 s
 
 let fold_utf_16be seg f acc0 s =
-  fold Uutf.String.fold_utf_16be Uutf.Buffer.add_utf_16be seg f acc0 s
+  fold String.get_utf_16be_uchar Buffer.add_utf_16be_uchar seg f acc0 s
 
 let fold_utf_16le seg f acc0 s =
-  fold Uutf.String.fold_utf_16le Uutf.Buffer.add_utf_16le seg f acc0 s
+  fold String.get_utf_16le_uchar Buffer.add_utf_16le_uchar seg f acc0 s
 
 let pp_utf_8 ppf s =
-  let b = Buffer.create 10 in
-  let flush () =
-    let gc = Buffer.contents b in
-    if gc = "" then () else (Format.fprintf ppf "@<1>%s" gc; Buffer.clear b)
+  let flush buf =
+    let gc = Buffer.contents buf in
+    if gc = "" then () else (Format.fprintf ppf "@<1>%s" gc; Buffer.clear buf)
   in
-  let seg = Uuseg.create `Grapheme_cluster in
-  let rec add a = match Uuseg.add seg a with
-  | `Uchar u -> Uutf.Buffer.add_utf_8 b u; add `Await
-  | `Boundary -> flush (); add `Await
+  let rec add buf segmenter v = match Uuseg.add segmenter v with
+  | `Uchar u -> Buffer.add_utf_8_uchar buf u; add buf segmenter `Await
+  | `Boundary -> flush buf; add buf segmenter `Await
   | `Await | `End -> ()
   in
-  let rec uchar () _ = function
-  | `Uchar _ as u -> add u
-  | `Malformed _ -> add (`Uchar Uutf.u_rep)
+  let rec loop buf s i max segmenter =
+    if i > max then (add buf segmenter `End; flush buf) else
+    let dec = String.get_utf_8_uchar s i in
+    add buf segmenter (`Uchar (Uchar.utf_decode_uchar dec));
+    loop buf s (i + Uchar.utf_decode_length dec) max segmenter
   in
-  Uutf.String.fold_utf_8 uchar () s; add `End; flush ()
+  let buf = Buffer.create 10 in
+  let segmenter = Uuseg.create `Grapheme_cluster in
+  loop buf s 0 (String.length s - 1) segmenter
 
 let pp_utf_8_text ~only_mandatory ppf s =
   let b = Buffer.create 10 in
@@ -65,7 +66,7 @@ let pp_utf_8_text ~only_mandatory ppf s =
   | Some last ->
       match Uchar.to_int last with
       | 0x000D when Uchar.to_int u = 0x000A -> buf_buf := Some u (* rem CR *)
-      | _ -> Uutf.Buffer.add_utf_8 b last; buf_buf := Some u
+      | _ -> Buffer.add_utf_8_uchar b last; buf_buf := Some u
   in
   let buf_cut mandatory =
     let bbuf = !buf_buf in
@@ -75,11 +76,11 @@ let pp_utf_8_text ~only_mandatory ppf s =
     | Some u when mandatory && Uucp.White.is_white_space u ->
         buf_flush (); Format.pp_force_newline ppf ()
     | Some u when mandatory -> (* should not happen *)
-        Uutf.Buffer.add_utf_8 b u; buf_flush (); Format.pp_force_newline ppf ()
+        Buffer.add_utf_8_uchar b u; buf_flush (); Format.pp_force_newline ppf ()
     | Some u when Uucp.White.is_white_space u ->
         buf_flush (); Format.pp_print_break ppf 1 0;
     | Some u ->
-        Uutf.Buffer.add_utf_8 b u; buf_flush (); Format.pp_print_cut ppf ()
+        Buffer.add_utf_8_uchar b u; buf_flush (); Format.pp_print_cut ppf ()
   in
   let gseg = Uuseg.create `Grapheme_cluster in
   let lseg = Uuseg.create `Line_break in
@@ -97,11 +98,13 @@ let pp_utf_8_text ~only_mandatory ppf s =
   | `Await -> ()
   | `End -> line_add `End; ()
   in
-  let rec uchar () _ = function
-  | `Uchar _ as u -> add u
-  | `Malformed _ -> add (`Uchar Uutf.u_rep)
+  let rec loop s i max =
+    if i > max then add `End else
+    let dec = String.get_utf_8_uchar s i in
+    add (`Uchar (Uchar.utf_decode_uchar dec));
+    loop s (i + Uchar.utf_decode_length dec) max
   in
-  Uutf.String.fold_utf_8 uchar () s; add `End
+  loop s 0 (String.length s - 1)
 
 let pp_utf_8_lines = pp_utf_8_text ~only_mandatory:true
 let pp_utf_8_text = pp_utf_8_text ~only_mandatory:false

@@ -11,24 +11,14 @@ let uutf = B0_ocaml.libname "uutf"
 let cmdliner = B0_ocaml.libname "cmdliner"
 
 let uuseg = B0_ocaml.libname "uuseg"
-let uuseg_string = B0_ocaml.libname "uuseg.string"
+
 
 (* Libraries *)
 
 let uuseg_lib =
-  let srcs = Fpath.[ `Dir (v "src");
-                     `X (v "src/uuseg_string.ml");
-                     `X (v "src/uuseg_string.mli"); ]
-  in
+  let srcs = [`Dir (Fpath.v "src")] in
   let requires = [uucp] in
   B0_ocaml.lib uuseg ~doc:"The uuseg library" ~srcs ~requires
-
-let uuseg_string_lib =
-  let srcs = Fpath.[ `File (v "src/uuseg_string.ml");
-                     `File (v "src/uuseg_string.mli") ]
-  in
-  let requires = [uucp; uuseg; uutf] in
-  B0_ocaml.lib uuseg_string ~doc:"The uuseg.string library" ~srcs ~requires
 
 (* Tools *)
 
@@ -48,13 +38,13 @@ let test =
              |> tag test
              |> add B0_unit.Action.exec_cwd scope_dir)
   in
-  let requires = [uucp; uuseg; uuseg_string] in
+  let requires = [uucp; uuseg] in
   B0_ocaml.exe "test" ~doc:"Test segmentations" ~srcs ~meta ~requires
 
 let examples =
   let srcs = [`File (Fpath.v "test/examples.ml")] in
   let meta = B0_meta.(empty |> tag test) in
-  let requires = [uutf; uuseg] in
+  let requires = [uuseg] in
   B0_ocaml.exe "examples" ~doc:"Doc samples" ~srcs ~meta ~requires
 
 (* Cmdlets *)
@@ -115,7 +105,7 @@ let default =
       [ "uutf", {|< "1.0.0"|};
         "cmdliner", {|< "1.1.0"|}]
     |> add B0_opam.Meta.depends
-      [ "ocaml", {|>= "4.03.0"|};
+      [ "ocaml", {|>= "4.14.0"|};
         "ocamlfind", {|build|};
         "ocamlbuild", {|build|};
         "topkg", {|build & >= "1.0.3"|};

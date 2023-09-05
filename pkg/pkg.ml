@@ -11,8 +11,7 @@ let () =
   Pkg.describe "uuseg" @@ fun c ->
   let uutf = Conf.value c uutf in
   let cmdliner = Conf.value c cmdliner in
-  Ok [ Pkg.mllib ~api:["Uuseg"] "src/uuseg.mllib";
-       Pkg.mllib ~cond:uutf "src/uuseg_string.mllib" ~dst_dir:"string";
+  Ok [ Pkg.mllib ~api:["Uuseg"; "Uuseg_string"] "src/uuseg.mllib";
        Pkg.bin ~cond:(uutf && cmdliner) "test/usegtrip";
        Pkg.test "test/test";
        Pkg.test "test/examples";

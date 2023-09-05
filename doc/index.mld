@@ -2,7 +2,7 @@
 
 Uuseg segments Unicode text. See {!Uuseg} for more details.
 
-{1:api API}
+{1:library_uuseg Library [uuseg]}
 
 {!modules:
 Uuseg
