@@ -1,4 +1,4 @@
-# New unicode release
+# New Unicode release
 
 First you will an install of [`uucp`] that supports the new Unicode
 version installed.
@@ -10,7 +10,7 @@ file. Veryify that everything is as expected with:
 
 Update the opam file with: 
 
-    b0 -- .opam.file > opam
+    b0 -- .opam file > opam
 
 Before the formal Unicode release date check the proposed update of
 [UAX29] and [UAX14]. If the rules need to be adjusted then do so.
