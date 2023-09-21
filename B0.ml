@@ -19,6 +19,10 @@ let uuseg_lib =
   let requires = [ uucp ] in
   B0_ocaml.lib uuseg ~doc:"The uuseg library" ~srcs ~requires
 
+let uuseg_string_lib =
+  let represents = [uuseg] in
+  B0_ocaml.deprecated_lib ~represents (B0_ocaml.libname "uuseg.string")
+
 (* Tools *)
 
 let usegtrip =
@@ -33,7 +37,7 @@ let test =
   let meta =
     B0_meta.empty
     |> B0_meta.(tag test)
-    |> B0_meta.add B0_unit.exec_cwd `Scope_dir
+    |> B0_meta.add B0_unit.Exec.cwd `Scope_dir
   in
   let requires = [ uucp; uuseg ] in
   B0_ocaml.exe "test" ~doc:"Test segmentations" ~srcs ~meta ~requires
@@ -52,7 +56,7 @@ let show_version =
   Ok (Log.app (fun m -> m "%s" (String.of_version unicode_version)))
 
 let curl env =
-  B0_env.get_tool env @@
+  B0_env.get_cmd env @@
   Cmd.(arg "curl" % "--fail" % "--show-error" % "--progress-bar" % "--location")
 
 let test_uri kind =
@@ -92,15 +96,15 @@ let default =
     |> B0_meta.(add description_tags)
       ["unicode"; "text"; "segmentation"; "org:erratique"]
     |> B0_meta.tag B0_opam.tag
-    |> B0_meta.add B0_opam.Meta.build
+    |> B0_meta.add B0_opam.build
       {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
          "--with-uutf" "%{uutf:installed}%"
          "--with-cmdliner" "%{cmdliner:installed}%" ]]|}
-    |> B0_meta.add B0_opam.Meta.depopts [ "uutf", ""; "cmdliner", ""]
-    |> B0_meta.add B0_opam.Meta.conflicts
+    |> B0_meta.add B0_opam.depopts [ "uutf", ""; "cmdliner", ""]
+    |> B0_meta.add B0_opam.conflicts
       [ "uutf", {|< "1.0.0"|};
         "cmdliner", {|< "1.1.0"|}]
-    |> B0_meta.add B0_opam.Meta.depends
+    |> B0_meta.add B0_opam.depends
       [ "ocaml", {|>= "4.14.0"|};
         "ocamlfind", {|build|};
         "ocamlbuild", {|build|};

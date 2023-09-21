@@ -5,8 +5,12 @@ archive(byte) = "uuseg.cma"
 archive(native) = "uuseg.cmxa"
 plugin(byte) = "uuseg.cma"
 plugin(native) = "uuseg.cmxs"
+exists_if = "uuseg.cma uuseg.cmxa"
 
 package "string" (
-  warning = "Deprecated. Use the uuseg library, the Uuseg_string module has moved there."
+  description = "The uuseg.string library (deprecated)"
+  version = "%%VERSION_NUM%%"
   requires = "uuseg"
+  represents = "uuseg"
+  warning = "Deprecated. Use the uuseg library."
 )
