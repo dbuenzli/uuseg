@@ -20,8 +20,8 @@ let uuseg_lib =
   B0_ocaml.lib uuseg ~doc:"The uuseg library" ~srcs ~requires
 
 let uuseg_string_lib =
-  let represents = [uuseg] in
-  B0_ocaml.deprecated_lib ~represents (B0_ocaml.libname "uuseg.string")
+  let exports = [uuseg] in
+  B0_ocaml.deprecated_lib ~exports (B0_ocaml.libname "uuseg.string")
 
 (* Tools *)
 
@@ -34,24 +34,20 @@ let usegtrip =
 
 let test =
   let srcs = [ `File ~/"test/test.ml" ] in
-  let meta =
-    B0_meta.empty
-    |> B0_meta.(tag test)
-    |> B0_meta.add B0_unit.Exec.cwd `Scope_dir
-  in
+  let meta = B0_meta.(empty |> tag test |> ~~ B0_unit.Action.cwd `Scope_dir) in
   let requires = [ uucp; uuseg ] in
   B0_ocaml.exe "test" ~doc:"Test segmentations" ~srcs ~meta ~requires
 
 let examples =
   let srcs = [ `File ~/"test/examples.ml" ] in
-  let meta = B0_meta.empty |> B0_meta.(tag test) in
+  let meta = B0_meta.(empty |> tag test) in
   let requires = [ uuseg ] in
   B0_ocaml.exe "examples" ~doc:"Doc samples" ~srcs ~meta ~requires
 
 (* Actions *)
 
 let show_version =
-  B0_action.make' "unicode-version" ~doc:"Show supported unicode version" @@
+  B0_unit.of_action "unicode-version" ~doc:"Show supported unicode version" @@
   fun _ _ ~args:_ ->
   Ok (Log.app (fun m -> m "%s" (String.of_version unicode_version)))
 
@@ -64,8 +60,8 @@ let test_uri kind =
     (String.of_version unicode_version) kind
 
 let download_tests =
-  B0_action.make' "download-tests" ~doc:"Download the UCD break tests" @@
-  fun _ env ~args:_ ->
+  B0_unit.of_action "download-tests" ~doc:"Download the UCD break tests" @@
+  fun env _ ~args:_ ->
   let* curl = curl env in
   let get kind =
     let test_uri = test_uri kind in

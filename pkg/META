@@ -11,6 +11,6 @@ package "string" (
   description = "The uuseg.string library (deprecated)"
   version = "%%VERSION_NUM%%"
   requires = "uuseg"
-  represents = "uuseg"
-  warning = "Deprecated. Use the uuseg library."
+  exports = "uuseg"
+  warning = "Deprecated, use the uuseg library."
 )
