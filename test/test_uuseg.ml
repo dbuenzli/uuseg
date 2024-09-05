@@ -6,11 +6,9 @@
 (* Uuseg tests, including Unicode's Segmentation and Line break conformance
    tests. *)
 
+open B0_testing
+
 let str = Format.asprintf
-let log f = Format.eprintf (f ^^ "@?")
-let fail fmt =
-  let fail _ = failwith (Format.flush_str_formatter ()) in
-  Format.kfprintf fail Format.str_formatter fmt
 
 let stack_to_loc stack =                                         (* Grrrrr. *)
   let stack = Printexc.raw_backtrace_to_string stack in
@@ -122,19 +120,20 @@ let decode_conformance_specs ignores ic =
               if ignores = [] then loop (spec :: specs) else
               try
                 let reason = List.assoc spec ignores in
-                log "Skip test (%s): %s\n" reason test;
+                Test.log "Skip test (%s): %s" reason test;
                 loop (specs)
               with
               | Not_found -> loop (spec :: specs)
               with Exit ->
-                  log "Skip test (surrogate not a scalar value): %s\n" test;
+                Test.log
+                  "Skip test (surrogate not a scalar value): %s" test;
                   loop specs
             end
         | [] -> failwith ""
         end
         with Failure f ->
-          log "FAILURE: `%s'" f;
-          log "Unable to parse line:\n`%s'\n" l; incr fail;
+          Test.fail "FAILURE: `%s'" f;
+          Test.fail "Unable to parse line:\n`%s'\n" l; incr fail;
           loop specs
   in
   loop []
@@ -226,19 +225,19 @@ let rec seq_of_spec acc = function
 | [] -> List.rev acc
 
 let test_conformance seg name ignores inf =
+  Test.test (str "Testing conformance of %s" name) @@ fun () ->
   try
-    log "Testing conformance of %s\n" name;
     let ic = open_in_bin inf in
     let specs = decode_conformance_specs ignores ic in
     let test spec = test seg (seq_of_spec [] spec) spec in
     List.iter test specs;
     close_in ic
-  with Sys_error e -> log "%s\n" e; incr fail
+  with Sys_error e -> Test.fail "%s" e; incr fail
 
 let uchar = Uchar.of_int
 
 let test_others () =
-  log "Making other tests.\n";
+  Test.test "Other things" @@ fun () ->
   let g = `Grapheme_cluster in
   test g [] [];
   test g [uchar 0x0020] [`B; `U (uchar 0x0020); `B;];
@@ -253,7 +252,7 @@ let test_others () =
   ()
 
 let test_uuseg_string () =
-  log "Testing Uutf_string.\n";
+  Test.test "Uutf_string" @@ fun () ->
   let fold8 seg s =
     List.rev (Uuseg_string.fold_utf_8 seg (fun acc s -> s :: acc) [] s)
   in
@@ -268,7 +267,7 @@ let test_uuseg_string () =
   ()
 
 let test_LB30b_assumption () =
-  log "Testing LB30b's data assumption.\n";
+  Test.test "LB30b's data assumption" @@ fun () ->
   (* This is needed by our implementation of LB30b *)
   let rec loop u =
     let c = Uucp.Emoji.is_extended_pictographic u &&
@@ -276,26 +275,27 @@ let test_LB30b_assumption () =
     in
     if c then begin
       if Uucp.Break.line u = `ID then () else
-      (log "LB30b assumption failure for U+%04d" (Uchar.to_int u))
+      (Test.fail "LB30b assumption failure for U+%04X: %a"
+         (Uchar.to_int u) Uucp.Break.pp_line (Uucp.Break.line u))
     end;
     if Uchar.equal u Uchar.max then () else loop (Uchar.succ u)
   in
   loop Uchar.min
 
 let test g_file w_file s_file l_file =
-  try
-    test_LB30b_assumption ();
-    test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file;
-    test_conformance `Word "word boundary" [] w_file;
-    test_conformance `Sentence "sentence boundary" [] s_file;
-    test_conformance `Line_break "line break boundary" line_break_ignores
-      l_file;
-    test_others ();
-    test_uuseg_string ();
-    if !fail > 0
-    then log "%d \x1B[31mFAILURES\x1B[0m out of %d tests.\n" !fail !test_case
-    else log "\x1B[32mSuccess\x1B[0m on %d tests!\n" !test_case
-  with Sys_error e -> log "%s\n" e; exit 1
+  Test.main @@ fun () ->
+  test_LB30b_assumption ();
+  test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file;
+  test_conformance `Word "word boundary" [] w_file;
+  test_conformance `Sentence "sentence boundary" [] s_file;
+  test_conformance `Line_break "line break boundary" line_break_ignores
+    l_file;
+  test_others ();
+  test_uuseg_string ();
+  if !fail > 0 then
+    Test.log_fail "%d \x1B[31mFAILURES\x1B[0m out of %d tests.\n"
+      !fail !test_case
+  else Test.log "\x1B[32mSuccess\x1B[0m on %d tests!\n" !test_case
 
 let main () =
   let usage = Printf.sprintf
@@ -321,4 +321,4 @@ let main () =
   Arg.parse (Arg.align options) err usage;
   test !g_file !w_file !s_file !l_file
 
-let () = if (not !Sys.interactive) then main ()
+let () = if !Sys.interactive then () else exit (main ())
