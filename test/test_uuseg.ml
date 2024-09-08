@@ -98,30 +98,27 @@ let test_spec ?__POS__ seg src spec =
   let add_uchar acc u = add acc (`Uchar u) in
   let nseq = List.rev (add (List.fold_left add_uchar [] src) `End) in
   if not !ended then
-    (Test.fail ?__POS__ "%a did not finish with `End." pp_boundary seg; false)
-  else
-  if nseq = spec then true else
-  (Test.fail ?__POS__ "@[<v>%a mismatch:@,impl: %a@,spec: %a@]"
-     pp_boundary seg pp_spec nseq pp_spec spec; false)
+    Test.fail ?__POS__ "%a did not finish with `End." pp_boundary seg else
+  if nseq <> spec then
+    Test.fail ?__POS__ "@[<v>%a mismatch:@,impl: %a@,spec: %a@]"
+      pp_boundary seg pp_spec nseq pp_spec spec
+  else Test.pass ()
 
 let test_conformance seg name ignores inf =
   Test.test (Printf.sprintf "conformance of %s" name) @@ fun () ->
-  let test_case = ref 0 in
-  let fail = ref 0 in
   let specs =
     try
       In_channel.with_open_bin inf @@ fun ic ->
       decode_conformance_specs ignores ic
     with Sys_error e -> Test.failstop "%s" e
   in
-  let test spec =
-    incr test_case;
-    if test_spec seg (seq_of_spec [] spec) spec then () else incr fail
+  let test spec = test_spec seg (seq_of_spec [] spec) spec in
+  let fail ?__POS__ n ~checks =
+    Test.log_fail "%a checks %a"
+      Test.Fmt.count_ratio (n, checks) Test.Fmt.failed ()
   in
-  List.iter test specs;
-  if !fail > 0
-  then Test.log_fail "%d/%d checks %a." !fail !test_case Test_fmt.pp_failed ()
-  else Test.log "%d checks %a" !test_case Test_fmt.pp_passed ()
+  Test.block ~__POS__ ~fail @@ fun () ->
+  List.iter test specs
 
 let test_others () =
   let u = Uchar.of_int in
