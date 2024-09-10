@@ -30,7 +30,7 @@ depends: [
   "ocamlfind" {build}
   "ocamlbuild" {build}
   "topkg" {build & >= "1.0.3"}
-  "uucp" {>= "15.1.0" & < "16.0.0"}
+  "uucp" {>= "16.0.0" & < "17.0.0"}
 ]
 depopts: ["uutf" "cmdliner"]
 conflicts: [

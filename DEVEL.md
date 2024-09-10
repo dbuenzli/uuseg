@@ -41,4 +41,4 @@ this downloads the tests for the Unicode version mentioned in `B0.ml`.
 
 You can then check them via: 
 
-    b0 -- test
+    b0 test

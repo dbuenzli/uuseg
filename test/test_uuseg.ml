@@ -140,7 +140,7 @@ let test_others () =
   ()
 
 let test_uuseg_string () =
-  Test.test "Uutf_string" @@ fun () ->
+  Test.test "Uuseg_string" @@ fun () ->
   let rec pp_list ppf = function
   | [] -> ()
   | s :: ss -> Format.fprintf ppf "%S;@ " s; pp_list ppf ss
