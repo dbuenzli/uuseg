@@ -52,7 +52,7 @@ let examples =
 let show_version =
   B0_unit.of_action "unicode-version" ~doc:"Show supported unicode version" @@
   fun _ _ ~args:_ ->
-  Ok (Log.app (fun m -> m "%s" (String.of_version unicode_version)))
+  Ok (Log.stdout (fun m -> m "%s" (String.of_version unicode_version)))
 
 let test_url kind =
   Fmt.str "http://www.unicode.org/Public/%s/ucd/auxiliary/%sBreakTest.txt"
@@ -65,7 +65,7 @@ let download_tests =
     let test_url = test_url kind in
     let test_file = Fpath.v (Fmt.str "test/%sBreakTest.txt" kind) in
     let test_file = B0_env.in_scope_dir env test_file in
-    (Log.app @@ fun m ->
+    (Log.stdout @@ fun m ->
      m "@[<v>Downloading %s@,to %a@]" test_url Fpath.pp test_file);
     B0_action_kit.fetch_url env test_url test_file
   in
