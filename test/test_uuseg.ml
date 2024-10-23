@@ -113,9 +113,9 @@ let test_conformance seg name ignores inf =
     with Sys_error e -> Test.failstop "%s" e
   in
   let test spec = test_spec seg (seq_of_spec [] spec) spec in
-  let fail ?__POS__ n ~checks =
-    Test.log_fail "%a checks %a"
-      Test.Fmt.count_ratio (n, checks) Test.Fmt.failed ()
+  let fail ?__POS__ n ~assertions =
+    Test.log_fail "%a assertions %a"
+      Test.Fmt.fail_count_ratio (n, assertions) Test.Fmt.failed ()
   in
   Test.block ~__POS__ ~fail @@ fun () ->
   List.iter test specs
