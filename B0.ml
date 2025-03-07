@@ -38,7 +38,7 @@ let test =
   let meta =
     B0_meta.(empty |> tag test |> tag run |> ~~ B0_unit.Action.cwd `Scope_dir)
   in
-  let requires = [ b0_std; uucp; uuseg ] in
+  let requires = [ b0_std; uucp; uuseg; cmdliner ] in
   B0_ocaml.exe "test_uucp" ~doc:"Test segmentations" ~srcs ~meta ~requires
 
 let examples =

@@ -7,6 +7,7 @@
    tests. *)
 
 open B0_testing
+open B0_std
 
 let pp_boundary ppf = function
 | `Grapheme_cluster -> Format.fprintf ppf "Grapheme cluster"
@@ -108,7 +109,7 @@ let test_conformance seg name ignores inf =
   Test.test (Printf.sprintf "conformance of %s" name) @@ fun () ->
   let specs =
     try
-      In_channel.with_open_bin inf @@ fun ic ->
+      In_channel.with_open_bin (Fpath.to_string inf) @@ fun ic ->
       decode_conformance_specs ignores ic
     with Sys_error e -> Test.failstop "%s" e
   in
@@ -120,7 +121,7 @@ let test_conformance seg name ignores inf =
   Test.block ~__POS__ ~fail @@ fun () ->
   List.iter test specs
 
-let test_others () =
+let test_others =
   let u = Uchar.of_int in
   Test.test "other specifications" @@ fun () ->
   let g = `Grapheme_cluster in
@@ -139,7 +140,7 @@ let test_others () =
   test_spec ~__POS__ l [] [];
   ()
 
-let test_uuseg_string () =
+let test_uuseg_string =
   Test.test "Uuseg_string" @@ fun () ->
   let rec pp_list ppf = function
   | [] -> ()
@@ -163,7 +164,7 @@ let test_uuseg_string () =
   test ~__POS__ (fold8 `Line_break "ab cd") ["ab "; "cd"];
   ()
 
-let test_LB30b_assumption () =
+let test_LB30b_assumption =
   Test.test "LB30b's data assumption" @@ fun () ->
   (* This is needed by our implementation of LB30b *)
   let rec loop u =
@@ -183,39 +184,37 @@ let test_LB30b_assumption () =
   in
   loop Uchar.min
 
-let test g_file w_file s_file l_file =
-  Test.main @@ fun () ->
+let main () =
+  let open Cmdliner in
+  let g_file =
+    Arg.(value & opt B0_std_cli.fpath (Fpath.v "test/GraphemeBreakTest.txt")
+         & info ["g"] ~doc:"The GraphemeBreakTest.txt file")
+  in
+  let w_file =
+    Arg.(value & opt B0_std_cli.fpath (Fpath.v "test/WordBreakTest.txt")
+         & info ["w"] ~doc:"The WordBreakTest.txt file")
+  in
+  let s_file =
+    Arg.(value & opt B0_std_cli.fpath (Fpath.v "test/SentenceBreakTest.txt")
+         & info ["s"] ~doc:"The SentenceBreakTest.txt file")
+  in
+  let l_file =
+    Arg.(value & opt B0_std_cli.fpath (Fpath.v "test/LineBreakTest.txt")
+         & info ["lb"] ~doc:"The LineBreakTest.txt file")
+  in
+  let args =
+    let open Term.Syntax in
+    let+ g_file and+ w_file and+ s_file and+ l_file in
+    (g_file, w_file, s_file, l_file)
+  in
+  let doc = "Run Unicode segmentation conformance tests" in
+  Test.main' ~doc args @@ fun (g_file, w_file, s_file, l_file) ->
   test_LB30b_assumption ();
-  test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file;
-  test_conformance `Word "word boundary" [] w_file;
-  test_conformance `Sentence "sentence boundary" [] s_file;
-  test_conformance `Line_break "line break boundary" [] l_file;
+  test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file ();
+  test_conformance `Word "word boundary" [] w_file ();
+  test_conformance `Sentence "sentence boundary" [] s_file ();
+  test_conformance `Line_break "line break boundary" [] l_file ();
   test_others ();
   test_uuseg_string ()
-
-let main () =
-  let usage = Printf.sprintf
-      "Usage: %s [INFILE]\n\
-      \ Runs the Unicode segmentation conformance tests.\n\
-    Options:" (Filename.basename Sys.executable_name)
-  in
-  let err _ = raise (Arg.Bad "no positional argument supported") in
-  let g_file = ref "test/GraphemeBreakTest.txt" in
-  let w_file = ref "test/WordBreakTest.txt" in
-  let s_file = ref "test/SentenceBreakTest.txt" in
-  let l_file = ref "test/LineBreakTest.txt" in
-  let str = Printf.sprintf in
-  let options =
-    [ "-g", Arg.String (fun f -> g_file := f),
-      str "Specifies the GraphemeBreakTest.txt file. Defaults to %s" !g_file;
-      "-w", Arg.String (fun f -> w_file := f),
-      str "Specifies the WordBreakTest.txt file. Defaults to %s" !w_file;
-      "-s", Arg.String (fun f -> s_file := f),
-      str "Specifies the SentenceBreakTest.txt file. Defaults to %s" !s_file;
-      "-l", Arg.String (fun f -> l_file := f),
-      str "Specifies the LineBreakTest.txt file. Defaults to %s" !l_file]
-  in
-  Arg.parse (Arg.align options) err usage;
-  test !g_file !w_file !s_file !l_file
 
 let () = if !Sys.interactive then () else exit (main ())
