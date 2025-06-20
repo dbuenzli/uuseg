@@ -9,18 +9,18 @@ let unicode_version = Uucp.unicode_version
 (* Segmenters *)
 
 type 'a custom_inner = { name : string;
-    create : unit -> 'a;
-    copy : 'a -> 'a;
-    mandatory : 'a -> bool;
-    add : 'a -> [ `Uchar of Uchar.t | `Await | `End ] ->
-      [ `Boundary | `Uchar of Uchar.t | `Await | `End ] }
+                         create : unit -> 'a;
+                         copy : 'a -> 'a;
+                         mandatory : 'a -> bool;
+                         add : 'a -> [ `Uchar of Uchar.t | `Await | `End ] ->
+                           [ `Boundary | `Uchar of Uchar.t | `Await | `End ] }
 
 type 'a segmenter =
-  | Grapheme_cluster : Uuseg_grapheme_cluster.t segmenter
-  | Word : Uuseg_word.t segmenter
-  | Sentence : Uuseg_sentence.t segmenter
-  | Line_break : Uuseg_line_break.t segmenter
-  | Custom :'a custom_inner -> 'a segmenter
+| Grapheme_cluster : Uuseg_grapheme_cluster.t segmenter
+| Word : Uuseg_word.t segmenter
+| Sentence : Uuseg_sentence.t segmenter
+| Line_break : Uuseg_line_break.t segmenter
+| Custom :'a custom_inner -> 'a segmenter
 
 type custom = C : 'a custom_inner -> custom
 
@@ -29,11 +29,11 @@ type boundary =
 
 let pp_boundary ppf b =
   match (b :> boundary) with
-| `Grapheme_cluster -> Format.fprintf ppf "`Grapheme_cluster"
-| `Word -> Format.fprintf ppf "`Word"
-| `Sentence -> Format.fprintf ppf "`Sentence"
-| `Line_break -> Format.fprintf ppf "`Line_break"
-| `Custom (C s) -> Format.fprintf ppf "`Custom %s" s.name
+  | `Grapheme_cluster -> Format.fprintf ppf "`Grapheme_cluster"
+  | `Word -> Format.fprintf ppf "`Word"
+  | `Sentence -> Format.fprintf ppf "`Sentence"
+  | `Line_break -> Format.fprintf ppf "`Line_break"
+  | `Custom (C s) -> Format.fprintf ppf "`Custom %s" s.name
 
 (* Built-in segmenters *)
 
@@ -69,7 +69,7 @@ let add (Seg (s, seg)) add =
   | Custom {add = f; _} -> f s add
 
 let mandatory (Seg (s, seg)) =
- match seg with
+  match seg with
   | Grapheme_cluster | Word | Sentence -> mandatory_default s
   | Line_break -> Uuseg_line_break.mandatory s
   | Custom {mandatory; _} -> mandatory s
@@ -94,8 +94,12 @@ let err_ended = Uuseg_base.err_ended
 
 let equal s1 s2 =
   match s1, s2 with
-  | Seg (s1, Grapheme_cluster), Seg (s2, Grapheme_cluster) -> Some (Uuseg_grapheme_cluster.equal s1 s2)
-  | Seg (s1, Word), Seg (s2, Word) -> Some (Uuseg_word.equal s1 s2)
-  | Seg (s1, Sentence), Seg (s2, Sentence) -> Some (Uuseg_sentence.equal s1 s2)
-  | Seg (s1, Line_break), Seg (s2, Line_break) -> Some (Uuseg_line_break.equal s1 s2)
+  | Seg (s1, Grapheme_cluster), Seg (s2, Grapheme_cluster) ->
+      Some (Uuseg_grapheme_cluster.equal s1 s2)
+  | Seg (s1, Word), Seg (s2, Word) ->
+      Some (Uuseg_word.equal s1 s2)
+  | Seg (s1, Sentence), Seg (s2, Sentence) ->
+      Some (Uuseg_sentence.equal s1 s2)
+  | Seg (s1, Line_break), Seg (s2, Line_break) ->
+      Some (Uuseg_line_break.equal s1 s2)
   | _ -> None

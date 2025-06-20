@@ -38,8 +38,8 @@
    a horribly ad-hoc fashion. *)
 
 type gcb =
-  | CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
-  | SM | T | V | XX | ZWJ | Sot
+| CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
+| SM | T | V | XX | ZWJ | Sot
 
 type incb = Consonant | Extend | Linker | None'
 
@@ -88,7 +88,7 @@ let gb9c_match s right_incb = match s.left_gb9c, right_incb with
 
 let break s right right_incb right_u = match s.left, right with
 | (* GB1 *)   Sot, _ -> true
-  (* GB2 is handled by `End *)
+(* GB2 is handled by `End *)
 | (* GB3 *)   CR, LF -> false
 | (* GB4 *)   (CN|CR|LF), _ -> true
 | (* GB5 *)   _, (CN|CR|LF) -> true
@@ -108,7 +108,7 @@ let update_left s right right_incb right_u =
   begin match s.left with
   | EX | ZWJ ->
       s.left_odd_ri <- false
-      (* keep s.left_emoji_seq as is *)
+  (* keep s.left_emoji_seq as is *)
   | RI ->
       s.left_odd_ri <- not s.left_odd_ri;
       s.left_emoji_seq <- false;
@@ -183,20 +183,25 @@ let equal =
     CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
     | SM | T | V | XX | ZWJ | Sot
   ) , (CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
-  | SM | T | V | XX | ZWJ | Sot) -> false
+      | SM | T | V | XX | ZWJ | Sot) -> false
   in
   let left_gb9c_state_equal  a b  =  match a, b with
   | Reset, Reset -> true
   | Has_consonant, Has_consonant -> true
   | Has_linker, Has_linker -> true
   | (Reset
-  | Has_consonant
-  | Has_linker), (Reset
-  | Has_consonant
-  | Has_linker) -> false
-in
-let buf_equal (`Uchar a) (`Uchar b) =
-Uchar.equal a b
-in
-  fun s1 s2 -> state_equal s1.state s2.state && gcb_equal s1.left s2.left
-  && left_gb9c_state_equal s1.left_gb9c s2.left_gb9c && Bool.(s1.left_odd_ri = s2.left_odd_ri) && Bool.(s1.left_emoji_seq = s2.left_emoji_seq) && buf_equal s1.buf s2.buf
+    | Has_consonant
+    | Has_linker), (Reset
+                   | Has_consonant
+                   | Has_linker) -> false
+  in
+  let buf_equal (`Uchar a) (`Uchar b) =
+    Uchar.equal a b
+  in
+  fun s1 s2 ->
+    state_equal s1.state s2.state
+    && gcb_equal s1.left s2.left
+    && left_gb9c_state_equal s1.left_gb9c s2.left_gb9c
+    && Bool.(s1.left_odd_ri = s2.left_odd_ri)
+    && Bool.(s1.left_emoji_seq = s2.left_emoji_seq)
+    && buf_equal s1.buf s2.buf
