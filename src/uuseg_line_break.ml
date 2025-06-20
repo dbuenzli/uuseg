@@ -437,3 +437,5 @@ let add s = function
         decide s
     | Flush | Decide -> Uuseg_base.err_exp_await `End
     end
+
+let equal _ _ = raise (Invalid_argument "TODO: implement")

@@ -229,3 +229,6 @@ let rec add s = function
     | Flush -> Uuseg_base.err_exp_await `End
     | End -> Uuseg_base.err_ended `End
     end
+
+
+let equal _ _ = raise (Invalid_argument "TODO: implement")

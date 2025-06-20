@@ -151,3 +151,52 @@ let add s = function
     | Flush -> Uuseg_base.err_exp_await `End
     | End -> Uuseg_base.err_ended `End
     end
+
+let equal =
+  let state_equal a b = match a, b with
+  | Fill, Fill -> true
+  | Flush, Flush -> true
+  | End, End -> true
+  | (Fill | Flush | End), (Fill | Flush | End) -> false
+  in
+  let gcb_equal a b=  match a, b with
+  | CN, CN -> true
+  | CR, CR -> true
+  | EX, EX -> true
+  | EB, EB -> true
+  | EBG, EBG -> true
+  | EM, EM -> true
+  | GAZ, GAZ -> true
+  | L, L -> true
+  | LF, LF -> true
+  | LV, LV -> true
+  | LVT, LVT -> true
+  | PP, PP -> true
+  | RI, RI -> true
+  | SM, SM -> true
+  | T, T -> true
+  | V, V -> true
+  | XX, XX -> true
+  | ZWJ, ZWJ -> true
+  | Sot, Sot -> true
+  | (
+    CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
+    | SM | T | V | XX | ZWJ | Sot
+  ) , (CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
+  | SM | T | V | XX | ZWJ | Sot) -> false
+  in
+  let left_gb9c_state_equal  a b  =  match a, b with
+  | Reset, Reset -> true
+  | Has_consonant, Has_consonant -> true
+  | Has_linker, Has_linker -> true
+  | (Reset
+  | Has_consonant
+  | Has_linker), (Reset
+  | Has_consonant
+  | Has_linker) -> false
+in
+let buf_equal (`Uchar a) (`Uchar b) =
+Uchar.equal a b
+in
+  fun s1 s2 -> state_equal s1.state s2.state && gcb_equal s1.left s2.left
+  && left_gb9c_state_equal s1.left_gb9c s2.left_gb9c && Bool.(s1.left_odd_ri = s2.left_odd_ri) && Bool.(s1.left_emoji_seq = s2.left_emoji_seq) && buf_equal s1.buf s2.buf

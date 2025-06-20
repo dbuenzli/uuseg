@@ -110,6 +110,20 @@ val copy : t -> t
 (** [copy s] is a copy of [s] in its current state. Subsequent {!add}s on
     [s] do not affect the copy. *)
 
+val equal : t -> t -> bool option
+(** [equal s1 s2] determines whether two segmenters are equivalent in their
+    current states and future behavior. It is:
+    {ul
+    {- [Some true] if [boundary s1] and [boundary s2] are equal and non-custom,
+      and [s1] and [s2] are in equivalent states - meaning they will produce
+      identical outputs for any future sequence of [add] calls. This includes
+      segmenters that are either the exact same instance or different instances
+      that have reached identical internal states.}
+    {- [Some false] if [boundary s1] and [boundary s2] are equal and non-custom,
+    but [s1] and [s2] are in different states that would lead to different future
+    outputs.}
+    {- [None] if [boundary s1] is not [boundary s2], or if either is [`Custom _].}} *)
+
 val pp_ret : Format.formatter -> [< ret] -> unit
 (** [pp_ret ppf v] prints an unspecified representation of [v] on [ppf]. *)
 
