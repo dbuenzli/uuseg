@@ -45,18 +45,18 @@ type custom
 
 type boundary =
   [ `Grapheme_cluster
-  (** {{:http://www.unicode.org/glossary/#extended_grapheme_cluster}
-      Extended grapheme clusters} according to
-      {{:https://www.unicode.org/reports/tr29/#C1-1}UAX29-C1-1} *)
+       (** {{:http://www.unicode.org/glossary/#extended_grapheme_cluster}
+           Extended grapheme clusters} according to
+           {{:https://www.unicode.org/reports/tr29/#C1-1}UAX29-C1-1} *)
   | `Word
-  (** Words according to
-      {{:https://www.unicode.org/reports/tr29/#C2-1}UAX29-C2-1} *)
+      (** Words according to
+          {{:https://www.unicode.org/reports/tr29/#C2-1}UAX29-C2-1} *)
   | `Sentence
-  (** Sentences according to
-      {{:https://www.unicode.org/reports/tr29/#C3-1}UAX29-C3-1} *)
+      (** Sentences according to
+          {{:https://www.unicode.org/reports/tr29/#C3-1}UAX29-C3-1} *)
   | `Line_break
-  (** Line breaks accordings to
-      {{:http://www.unicode.org/reports/tr14/}UAX #14} *)
+      (** Line breaks accordings to
+          {{:http://www.unicode.org/reports/tr14/}UAX #14} *)
   | `Custom of custom ]
 (** The type for boundaries. *)
 
@@ -178,7 +178,7 @@ val err_ended : [< ret] -> 'a
     The function {!create} returns a new segmenter for a given boundary
     type:
 {[
-  let words = Uuseg.create `Word
+let words = Uuseg.create `Word
 ]}
     To add characters to the sequence to segment, call {!add} on
     [words] with [`Uchar _]. To end the sequence call {!add} on [words]
@@ -192,18 +192,18 @@ val err_ended : [< ret] -> 'a
     call {!add} with [`Await] until the segmenter returns [`Await]
     or [`End]. In practice this leads to the following kind of control flow:
 {[
-  let rec add acc v = match Uuseg.add words v with
-  | `Uchar u -> add (`Uchar u :: acc) `Await
-  | `Boundary -> add (`B :: acc) `Await
-  | `Await | `End -> acc
+let rec add acc v = match Uuseg.add words v with
+| `Uchar u -> add (`Uchar u :: acc) `Await
+| `Boundary -> add (`B :: acc) `Await
+| `Await | `End -> acc
 ]}
     For example to segment the sequence <[U+0041], [U+0020], [U+0042]>
     (["a b"]) to a list of characters interleaved with [`B] values on word
     boundaries we can write:
 {[
-  let uchar = `Uchar (Uchar.of_int u)
-  let seq = [uchar 0x0041; uchar 0x0020; uchar 0x0042]
-  let seq_words = List.rev (add (List.fold_left add [] seq) `End)
+let uchar = `Uchar (Uchar.of_int u)
+let seq = [uchar 0x0041; uchar 0x0020; uchar 0x0042]
+let seq_words = List.rev (add (List.fold_left add [] seq) `End)
 ]}
 *)
 
@@ -213,25 +213,25 @@ val err_ended : [< ret] -> 'a
 the UTF-8 encoded string [s].
 
 {[
-  let utf_8_segments seg s =
-    let flush_segment buf acc =
-      let segment = Buffer.contents buf in
-      Buffer.clear buf; if segment = "" then acc else segment :: acc
-    in
-    let rec add buf acc segmenter v = match Uuseg.add segmenter v with
-    | `Uchar u -> Buffer.add_utf_8_uchar buf u; add buf acc segmenter `Await
-    | `Boundary -> add buf (flush_segment buf acc) segmenter `Await
-    | `Await | `End -> acc
-    in
-    let rec loop buf acc s i max segmenter =
-      if i > max then flush_segment buf (add buf acc segmenter `End) else
-      let dec = String.get_utf_8_uchar s i in
-      let acc = add buf acc segmenter (`Uchar (Uchar.utf_decode_uchar dec)) in
-      loop buf acc s (i + Uchar.utf_decode_length dec) max segmenter
-    in
-    let buf = Buffer.create 42 in
-    let segmenter = Uuseg.create seg in
-    List.rev (loop buf [] s 0 (String.length s - 1) segmenter)
+let utf_8_segments seg s =
+  let flush_segment buf acc =
+    let segment = Buffer.contents buf in
+    Buffer.clear buf; if segment = "" then acc else segment :: acc
+  in
+  let rec add buf acc segmenter v = match Uuseg.add segmenter v with
+  | `Uchar u -> Buffer.add_utf_8_uchar buf u; add buf acc segmenter `Await
+  | `Boundary -> add buf (flush_segment buf acc) segmenter `Await
+  | `Await | `End -> acc
+  in
+  let rec loop buf acc s i max segmenter =
+    if i > max then flush_segment buf (add buf acc segmenter `End) else
+    let dec = String.get_utf_8_uchar s i in
+    let acc = add buf acc segmenter (`Uchar (Uchar.utf_decode_uchar dec)) in
+    loop buf acc s (i + Uchar.utf_decode_length dec) max segmenter
+  in
+  let buf = Buffer.create 42 in
+  let segmenter = Uuseg.create seg in
+  List.rev (loop buf [] s 0 (String.length s - 1) segmenter)
 ]}
 
 Note that this function can be derived directly from
