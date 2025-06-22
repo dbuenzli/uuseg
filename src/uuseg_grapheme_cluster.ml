@@ -81,6 +81,7 @@ let create () =
     buf = nul_buf (* overwritten *); }
 
 let copy s = { s with state = s.state; }
+let equal = ( = )
 
 let gb9c_match s right_incb = match s.left_gb9c, right_incb with
 | Has_linker, Consonant -> true

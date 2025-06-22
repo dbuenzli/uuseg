@@ -94,6 +94,7 @@ let create () =
     ended = false; }
 
 let copy s = { s with r0_data = Uuseg_buf.copy s.r0_data; }
+let equal = ( = )
 
 let has_break s = match s.l1, s.l0 (**),(**) s.r0, s.r1 with
 | (* WB1 *)  _, Sot, _, _ -> true

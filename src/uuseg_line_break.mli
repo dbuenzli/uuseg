@@ -10,5 +10,6 @@
 type t
 val create : unit -> t
 val copy : t -> t
+val equal : t -> t -> bool
 val mandatory : t -> bool
 val add : t ->  [ `Await | `End | `Uchar of Uchar.t ] -> Uuseg_base.ret

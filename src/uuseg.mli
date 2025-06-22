@@ -110,10 +110,17 @@ val copy : t -> t
 (** [copy s] is a copy of [s] in its current state. Subsequent {!add}s on
     [s] do not affect the copy. *)
 
+val equal : t -> t -> bool
+(** [equal s0 s1] is [true] iff [s0] and [s1] are in the same state,
+    that is any sequence of {!add}s made on both [s0] and [s1] produce
+    the same outputs.
+
+    @raise Invalid_argument on {{!custom}custom segmenters}.  *)
+
 val pp_ret : Format.formatter -> [< ret] -> unit
 (** [pp_ret ppf v] prints an unspecified representation of [v] on [ppf]. *)
 
-(** {1 Custom segmenters} *)
+(** {1:custom Custom segmenters} *)
 
 val custom :
   ?mandatory:('a -> bool) ->

@@ -204,6 +204,7 @@ let create () =
 
 let mandatory s = s.mandatory
 let copy s = { s with state = s.state }
+let equal = ( = )
 
 let lb10_rewrite = function CM | ZWJ -> AL | l -> l
 let is_lb9_X = function  BK | CR | LF | NL | SP | ZW | Sot -> false | _ -> true

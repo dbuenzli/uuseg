@@ -76,6 +76,8 @@ let copy s =
            r0_buf = Uuseg_buf.copy s.r0_buf;
            sb8_buf = Uuseg_buf.copy s.sb8_buf; }
 
+let equal = ( = )
+
 let l0_sentence s = s.window.(s.l0)
 let r0_sentence s = s.window.((s.l0 + 1) mod Array.length s.window)
 let r0_sentence_set s l = s.window.((s.l0 + 1) mod Array.length s.window) <- l
