@@ -104,23 +104,23 @@
    already returned to client /  \ buffered in segmenter *)
 
 type line =
-| AI | AK | AL | AP | AS | B2 | BA | BB | BK | CB | CJ | CL | CM | CP
-| CR | EX | EB | EM | GL | H2 | H3 | HL | HY | ID | IN
-| IS | JL | JT | JV | LF | NL | NS | NU | OP | PO | PR
-| QU | RI | SA | SG | SP | SY | VF | VI | WJ | XX | ZW | ZWJ | Invalid | Sot
-| Eot
-(* Added to handle the U+255C constant in LB28a. We need to split AL (the
-   class of U+255C), the full set is AL + AL_circ *)
-| AL_circ
-(* Added to handle the U+2010 constant in LB20a. We need to split BA (
-   the class of U+2010), the full set is BA + BA_hyph *)
-| BA_hyph
-(* Added to handle LB15{a,b} and LB19. We need to split QU (the full set is
-   QU + QU_Pf + QU_Pi *)
-| QU_Pf
-| QU_Pi
-(* Added to handle LB30b *)
-| ID30b
+  | AI | AK | AL | AP | AS | B2 | BA | BB | BK | CB | CJ | CL | CM | CP
+  | CR | EX | EB | EM | GL | H2 | H3 | HL | HY | ID | IN
+  | IS | JL | JT | JV | LF | NL | NS | NU | OP | PO | PR
+  | QU | RI | SA | SG | SP | SY | VF | VI | WJ | XX | ZW | ZWJ | Invalid | Sot
+  | Eot
+  (* Added to handle the U+255C constant in LB28a. We need to split AL (the
+    class of U+255C), the full set is AL + AL_circ *)
+  | AL_circ
+  (* Added to handle the U+2010 constant in LB20a. We need to split BA (
+    the class of U+2010), the full set is BA + BA_hyph *)
+  | BA_hyph
+  (* Added to handle LB15{a,b} and LB19. We need to split QU (the full set is
+    QU + QU_Pf + QU_Pi *)
+  | QU_Pf
+  | QU_Pi
+  (* Added to handle LB30b *)
+  | ID30b
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.line_break. *)
@@ -227,7 +227,7 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
                                              s.l0_rewrite = SP -> true
   | (* LB8a *) _, ZWJ, _ -> false
   | (* LB9 implicitely entails  ¬(BK|CR|LF|NL|SP|ZW as X) × (CM|ZWJ) *)
-    _, x, (CM|ZWJ) when is_lb9_X s.l0_rewrite -> false
+               _, x, (CM|ZWJ) when is_lb9_X s.l0_rewrite -> false
   | _ -> (* apply LB9/LB10 rewrite and match *)
       let l2m = lb10_rewrite s.l2_rewrite in
       let l1m = lb10_rewrite s.l1_rewrite in
@@ -320,7 +320,7 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
       |              _, _, (NU|SY|IS),
                      (PO|PR|NU), _, _  when s.lb25_nu -> false
       |              _, _, (PO|PR),
-                     OP, IS, NU -> false
+                      OP, IS, NU -> false
       |             _, _, (PO|PR),
                     OP, NU, _ -> false
       |             _, _, (PR|HY|IS|PO),

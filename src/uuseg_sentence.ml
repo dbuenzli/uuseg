@@ -39,8 +39,8 @@
     already returned to client /  \ buffered in segmenter *)
 
 type sentence =
-| AT | CL | CR | EX | FO | LE | LF | LO | NU | SC | SE | SP | ST | UP | XX
-| Invalid | Sot | Eot
+  | AT | CL | CR | EX | FO | LE | LF | LO | NU | SC | SE | SP | ST | UP | XX
+  | Invalid | Sot | Eot
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.sentence. *)
@@ -51,11 +51,11 @@ let byte_to_sentence =
 let sentence u = byte_to_sentence.(Uucp.Break.Low.sentence u)
 
 type state =
-| Fill       (* fill slots on the right of boundary *)
-| Fill_CL_SP (* ad-hoc state to handle SB8 to SB11 *)
-| Fill_SB8   (* ad-hoc state to handle SB8 *)
-| Flush      (* flush slot r0 to get to next boundary. *)
-| End        (* `End was added. *)
+  | Fill       (* fill slots on the right of boundary *)
+  | Fill_CL_SP (* ad-hoc state to handle SB8 to SB11 *)
+  | Fill_SB8   (* ad-hoc state to handle SB8 *)
+  | Flush      (* flush slot r0 to get to next boundary. *)
+  | End        (* `End was added. *)
 
 type t =
   { mutable state : state;                                 (* current state. *)
@@ -122,7 +122,7 @@ let decide s =
   | (* SB6 *)  _, AT, NU -> no_boundary s
   | (* SB7 *) (UP|LO), AT, UP -> no_boundary s
   | (* SB8-SB11 is also handled in [add]. *)
-    _, (AT|ST), sentence -> decide_sb8_sb11 s sentence (r0_flush s)
+               _, (AT|ST), sentence -> decide_sb8_sb11 s sentence (r0_flush s)
   | (* SB12 *) _, _, _ -> no_boundary s
 
 let rec add s = function

@@ -38,8 +38,8 @@
    a horribly ad-hoc fashion. *)
 
 type gcb =
-| CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
-| SM | T | V | XX | ZWJ | Sot
+  | CN | CR | EX | EB | EBG | EM | GAZ | L | LF | LV | LVT | PP | RI
+  | SM | T | V | XX | ZWJ | Sot
 
 type incb = Consonant | Extend | Linker | None'
 
@@ -88,7 +88,7 @@ let gb9c_match s right_incb = match s.left_gb9c, right_incb with
 
 let break s right right_incb right_u = match s.left, right with
 | (* GB1 *)   Sot, _ -> true
-(* GB2 is handled by `End *)
+  (* GB2 is handled by `End *)
 | (* GB3 *)   CR, LF -> false
 | (* GB4 *)   (CN|CR|LF), _ -> true
 | (* GB5 *)   _, (CN|CR|LF) -> true
@@ -108,7 +108,7 @@ let update_left s right right_incb right_u =
   begin match s.left with
   | EX | ZWJ ->
       s.left_odd_ri <- false
-  (* keep s.left_emoji_seq as is *)
+      (* keep s.left_emoji_seq as is *)
   | RI ->
       s.left_odd_ri <- not s.left_odd_ri;
       s.left_emoji_seq <- false;
