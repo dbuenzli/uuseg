@@ -8,12 +8,13 @@ let unicode_version = Uucp.unicode_version
 
 (* Segmenters *)
 
-type 'a custom_inner = { name : string;
-                         create : unit -> 'a;
-                         copy : 'a -> 'a;
-                         mandatory : 'a -> bool;
-                         add : 'a -> [ `Uchar of Uchar.t | `Await | `End ] ->
-                           [ `Boundary | `Uchar of Uchar.t | `Await | `End ] }
+type 'a custom_inner =
+  { name : string;
+    create : unit -> 'a;
+    copy : 'a -> 'a;
+    mandatory : 'a -> bool;
+    add : 'a -> [ `Uchar of Uchar.t | `Await | `End ] ->
+      [ `Boundary | `Uchar of Uchar.t | `Await | `End ] }
 
 type 'a segmenter =
 | Grapheme_cluster : Uuseg_grapheme_cluster.t segmenter
