@@ -2,7 +2,7 @@ open B0_kit.V000
 open Result.Syntax
 
 let unicode_version = 16, 0, 0, None (* Adjust on new releases *)
-let next_major = let maj, _, _, _ = unicode_version in (maj + 1), 0, 0, None
+let next_major = B0_version.next_major unicode_version
 
 (* OCaml library names *)
 
@@ -52,11 +52,11 @@ let examples =
 let show_version =
   B0_unit.of_action "unicode-version" ~doc:"Show supported unicode version" @@
   fun _ _ ~args:_ ->
-  Ok (Log.stdout (fun m -> m "%s" (String.of_version unicode_version)))
+  Ok (Log.stdout (fun m -> m "%s" (B0_version.to_string unicode_version)))
 
 let test_url kind =
   Fmt.str "http://www.unicode.org/Public/%s/ucd/auxiliary/%sBreakTest.txt"
-    (String.of_version unicode_version) kind
+    (B0_version.to_string unicode_version) kind
 
 let download_tests =
   let doc = "Download the UCD break tests" in
@@ -103,8 +103,8 @@ let default =
         "topkg", {|build & >= "1.0.3"|};
         "uucp",
         Fmt.str {|>= "%s" & < "%s"|}
-          (String.of_version unicode_version)
-          (String.of_version next_major)]
+          (B0_version.to_string unicode_version)
+          (B0_version.to_string next_major)]
   in
   B0_pack.make "default" ~doc:"uuseg package" ~meta ~locked:true @@
   B0_unit.list ()
