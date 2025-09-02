@@ -23,7 +23,7 @@
    LB11                               × WJ
                                    WJ ×
    LB12                            GL ×
-   LB12a          ¬(SP|BA|BA_hyph|HY) × GL
+   LB12a               ¬(SP|BA|HY|HH) × GL
    LB13                               × (CL|CP|EX|SY)
    LB14                 (OP|OP30) SP* ×
    LB15                        QU SP* × (OP|OP30)
@@ -31,7 +31,7 @@
    LB15b  × QU_Pf (SP|GL|WJ|CL|QU|CP|EX|IS|SY|BK|CR|LF|NL|ZW|eot)
    LB15c                           SP ÷ IS NU
    LB15d                              × IS
-   LB16              (CL|CP) SP* × NS
+   LB16                   (CL|CP) SP* × NS
    LB17                        B2 SP* × B2
    LB18                            SP ÷
    LB19                               × (QU|QU_Pf)
@@ -44,18 +44,18 @@
                      ¬EastAsian QU_Pf ×
    LB20                               ÷ CB
                                    CB ÷
-   LB20a  (sot|BK|CR|LF|NL|SP|ZW|CB|GL) (HY|BA_hyph) × AL
-   LB21                               × (BA|BA_hyph|HY|NS)
+   LB20a  (sot|BK|CR|LF|NL|SP|ZW|CB|GL) (HY|HH) × (AL|AL_30b|AL_circ|HL)
+   LB21                               × (BA|HH|HY|NS)
                                    BB ×
-   LB21a           HL (HY|BA|BA_hyph) × ¬(HL)
+   LB21a                   HL (HY|HH) × ¬(HL)
    LB21b                           SY × HL
    LB22                               × IN
-   LB23               (AL|AL_circ|HL) × NU
-                                   NU × (AL|AL_circ|HL)
-   LB23a                           PR × (ID|ID30b|EB|EM)
-                     (ID|ID30b|EB|EM) × PO
-   LB24                       (PR|PO) × (AL|AL_circ|HL)
-                      (AL|AL_circ|HL) × (PR|PO)
+   LB23        (AL|AL_30b|AL_circ|HL) × NU
+                                   NU × (AL|AL_30b|AL_circ|HL)
+   LB23a                           PR × (ID|ID_30b|EB|EM)
+                    (ID|ID_30b|EB|EM) × PO
+   LB24                       (PR|PO) × (AL|AL_30b|AL_circ|HL)
+               (AL|AL_30b|AL_circ|HL) × (PR|PO)
    LB25           NU (SY|IS)* (CL|CP) × (PO|PR)
                          NU (SY |IS)* × (PO|PR|NU)
                               (PO|PR) × OP NU
@@ -66,18 +66,18 @@
                               (JT|H3) × JT
    LB27              (JL|JV|JT|H2|H3) × (IN|PO)
                                    PR × (JL|JV|JT|H2|H3)
-   LB28               (AL|AL_circ|HL) × (AL|AL_circ|HL)
+   LB28        (AL|AL_30b|AL_circ|HL) × (AL|AL_30b|AL_circ|HL)
    LB28a                           AP × (AK|AL_circ|AS)
                       (AK|AL_circ|AS) × (VF|VI)
                    (AK|AL_circ|AS) VI × (AK|AL_circ)
                       (AK|AL_circ|AS) × (AK|AL_circ|AS) VF
    LB29                            IS × (AL|HL)
-   LB30            (AL|AL_circ|HL|NU) × OP-EastAsian
-                         CP-EastAsian × (AL|AL_circ|HL|NU)
+   LB30     (AL|AL_30b|AL_circ|HL|NU) × OP-EastAsian
+                         CP-EastAsian × (AL|AL_30b|AL_circ|HL|NU)
    LB30a              sot (RI RI)* RI × RI
                     [^RI] (RI RI)* RI × RI
    LB30b                           EB × EM
-                                ID30b x EM
+                               ID_30b x EM
    LB31                           ALL ÷
                                       ÷ ALL
 
@@ -105,22 +105,19 @@
 
 type line =
   | AI | AK | AL | AP | AS | B2 | BA | BB | BK | CB | CJ | CL | CM | CP
-  | CR | EX | EB | EM | GL | H2 | H3 | HL | HY | ID | IN
+  | CR | EX | EB | EM | GL | H2 | H3 | HH | HL | HY | ID | IN
   | IS | JL | JT | JV | LF | NL | NS | NU | OP | PO | PR
   | QU | RI | SA | SG | SP | SY | VF | VI | WJ | XX | ZW | ZWJ | Invalid | Sot
   | Eot
-  (* Added to handle the U+255C constant in LB28a. We need to split AL (the
-     class of U+255C), the full set is AL + AL_circ *)
-  | AL_circ
-  (* Added to handle the U+2010 constant in LB20a. We need to split BA (
-     the class of U+2010), the full set is BA + BA_hyph *)
-  | BA_hyph
-  (* Added to handle LB15{a,b} and LB19. We need to split QU (the full set is
-     QU + QU_Pf + QU_Pi *)
-  | QU_Pf
+  | AL_circ (* Added to handle the U+255C constant in LB28a. We need to split
+               AL (the class of U+255C), the full set is AL + AL_circ +
+               AL_30b (see below) *)
+  | QU_Pf (* Added to handle LB15{a,b} and LB19. We need to split QU
+             (the full set is QU + QU_Pf + QU_Pi *)
   | QU_Pi
   (* Added to handle LB30b *)
-  | ID30b
+  | AL_30b
+  | ID_30b
 
 (* WARNING. The indexes used here need to be synchronized with those
    assigned by uucp for Uucp.Break.Low.line_break. *)
@@ -128,9 +125,9 @@ type line =
 let byte_to_line =
   [| AL (* LB1 AI → AL *); AK; AL; AP; AS; B2; BA; BB; BK; CB;
      NS (* LB1 CJ → NS *); CL;
-     CM; CP; CR; EX; EB; EM; GL; H2; H3; HL; HY; ID; IN; IS; JL; JT; JV; LF;
+     CM; CP; CR; EX; EB; EM; GL; H2; H3; HH; HL; HY; ID; IN; IS; JL; JT; JV; LF;
      NL; NS; NU; OP; PO; PR; QU; RI; SA; AL (* LB1 SG → AL *); SP; SY; VF; VI;
-     WJ; AL (* LB1 XX → AL *); ZW; ZWJ |]
+     WJ; XX; ZW; ZWJ |]
 
 let eastasian (`Uchar u) = match Uucp.Break.east_asian_width u with
 | `F | `W | `H -> true | _ -> false
@@ -141,16 +138,17 @@ let line u = match byte_to_line.(Uucp.Break.Low.line u) with
     | `Mn | `Mc -> CM
     | _ -> AL
     end
-| ID -> (* Decompose because of LB30b, this assumption is tested in test.ml
-           Since Unicode 16.0.0 a few unasigned XX assert as such. However
-           those are treated as AL. Since the behaviour of XX character
-           is supposedly unknown we do not care to split AL. *)
+| ID -> (* Decompose because of LB30b, this assumption is tested in test.ml *)
     if Uucp.Emoji.is_extended_pictographic u &&
-       Uucp.Gc.general_category u = `Cn then ID30b else ID
+       Uucp.Gc.general_category u = `Cn then ID_30b else ID
 | AL -> (* Decompose because of LB28a *)
     if Uchar.to_int u = 0x25CC then AL_circ else AL
-| BA -> (* Decompose because of LB20 *)
-    if Uchar.to_int u = 0x2010 then BA_hyph else BA
+| XX ->
+    (* Some unassigned characters match the second rule of LB30b *)
+    if Uucp.Emoji.is_extended_pictographic u &&
+       Uucp.Gc.general_category u = `Cn
+    then AL_30b
+    else AL (* LB1 XX → AL *)
 | QU -> (* Decompose because of LB15{a,b} *)
     begin match Uucp.Gc.general_category u with
     | `Pf -> QU_Pf
@@ -208,7 +206,7 @@ let equal = ( = )
 
 let lb10_rewrite = function CM | ZWJ -> AL | l -> l
 let is_lb9_X = function  BK | CR | LF | NL | SP | ZW | Sot -> false | _ -> true
-let is_lb12_l0 = function SP | BA | BA_hyph | HY -> false | _ -> true
+let is_lb12_l0 = function SP | BA | HY | HH -> false | _ -> true
 
 let has_break s = (* N.B. sets s.mandatory by side effect. *)
   let mandatory s = s.mandatory <- true; true in
@@ -292,29 +290,29 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
                     CB, _, _ -> true
       |             _, _, CB,
                     _, _, _ -> true
-      | (* LB20a *) _, (Sot|BK|CR|LF|NL|SP|ZW|CB|GL), (HY|BA_hyph),
-                    AL, _, _  -> false
+      | (* LB20a *) _, (Sot|BK|CR|LF|NL|SP|ZW|CB|GL), (HY|HH),
+                    (AL|AL_30b|AL_circ|HL), _, _  -> false
       | (* LB21 *)  _, _, _,
-                    (BA|BA_hyph|HY|NS), _, _ -> false
+                    (BA|HH|HY|NS), _, _ -> false
       |             _, _, BB,
                     _, _, _ -> false
-      | (* LB21a *) _, HL, (HY|BA|BA_hyph),
+      | (* LB21a *) _, HL, (HY|HH),
                     r0, _, _ when r0 <> HL -> false
       | (* LB21b *) _, _, SY,
                     HL, _, _ -> false
       | (* LB22 *)  _, _, _,
                     IN, _, _ -> false
-      | (* LB23 *)  _, _, (AL|AL_circ|HL),
+      | (* LB23 *)  _, _, (AL|AL_30b|AL_circ|HL),
                     NU, _, _ -> false
       |             _, _, NU,
-                    (AL|AL_circ|HL), _, _ -> false
+                    (AL|AL_30b|AL_circ|HL), _, _ -> false
       | (* LB23a *) _, _, PR,
-                    (ID|ID30b|EB|EM), _, _ -> false
+                    (ID|ID_30b|EB|EM), _, _ -> false
       |             _, _,
-                    (ID|ID30b|EB|EM), PO, _, _ -> false
+                    (ID|ID_30b|EB|EM), PO, _, _ -> false
       | (* LB24 *)  _, _, (PR|PO),
-                    (AL|AL_circ|HL), _, _ -> false
-      |             _, _, (AL|AL_circ|HL),
+                    (AL|AL_30b|AL_circ|HL), _, _ -> false
+      |             _, _, (AL|AL_30b|AL_circ|HL),
                     (PR|PO), _, _ -> false
       | (* LB25 *)   _, _, (CL|CP),
                      (PO|PR), _, _ when s.lb25_nu -> false
@@ -336,8 +334,8 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
                     PO, _, _ -> false
       |             _, _, PR,
                     (JL|JV|JT|H2|H3), _, _ -> false
-      | (* LB28 *)  _, _, (AL|AL_circ|HL),
-                    (AL|AL_circ|HL), _, _ -> false
+      | (* LB28 *)  _, _, (AL|AL_30b|AL_circ|HL),
+                    (AL|AL_30b|AL_circ|HL), _, _ -> false
       | (* LB28a *) _, _, AP,
                     (AK|AL_circ|AS), _, _ -> false
       |             _, _, (AK|AL_circ|AS),
@@ -347,17 +345,17 @@ let has_break s = (* N.B. sets s.mandatory by side effect. *)
       |             _, _, (AK|AL_circ|AS),
                     (AK|AL_circ|AS), VF, _ -> false
       | (* LB29 *)  _, _, IS,
-                    (AL|AL_circ|HL), _, _ -> false
-      | (* LB30 *)  _, _, (AL|AL_circ|HL|NU),
+                    (AL|AL_30b|AL_circ|HL), _, _ -> false
+      | (* LB30 *)  _, _, (AL|AL_30b|AL_circ|HL|NU),
                     OP, _, _ when not (eastasian s.r0_data) -> false
       |             _, _, CP,
-                    (AL|AL_circ|HL|NU), _, _
+                    (AL|AL_30b|AL_circ|HL|NU), _, _
         when not (eastasian s.l0_data) -> false
       | (* LB30a *) _, _, RI,
                     RI, _, _ when s.l0_odd_ri -> false
       | (* LB30b *) _, _, EB,
                     EM, _, _ -> false
-      |             _, _, ID30b,
+      |             _, _, (AL_30b|ID_30b),
                     EM, _, _ -> false
       | (* LB31 *)  _, _, _,
                     _, _, _ -> true
