@@ -1,12 +1,13 @@
+v17.0.0 2025-09-11 Zagreb
+-------------------------
 
 - Unicode 17.0.0 support.
-
+- Add `Uuseg.equal` thanks to @lord for suggesting.
 
 v16.0.0 2024-09-11 Zagreb
 -------------------------
 
 - Unicode 16.0.0 support.
-- Add `Uuseg.equal` thanks to @lord for suggesting.
 
 v15.1.0 2023-09-15 Zagreb
 -------------------------
