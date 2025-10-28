@@ -17,7 +17,7 @@ let uuseg = B0_ocaml.libname "uuseg"
 
 let uuseg_lib =
   let srcs = [ `Dir ~/"src" ] in
-  let requires = [ uucp ] in
+  let requires = [uucp] in
   B0_ocaml.lib uuseg ~doc:"The uuseg library" ~srcs ~requires
 
 let uuseg_string_lib =
@@ -28,24 +28,18 @@ let uuseg_string_lib =
 
 let usegtrip =
   let srcs = [ `File ~/"test/usegtrip.ml" ] in
-  let requires = [ cmdliner; uutf; uuseg ] in
+  let requires = [cmdliner; uutf; uuseg] in
   B0_ocaml.exe "usegtrip" ~public:true ~doc:"The usegtrip tool" ~srcs ~requires
 
 (* Tests *)
 
 let test =
-  let srcs = [ `File ~/"test/test_uuseg.ml" ] in
-  let meta =
-    B0_meta.(empty |> tag test |> tag run |> ~~ B0_unit.Action.cwd `Scope_dir)
-  in
-  let requires = [ b0_std; uucp; uuseg; cmdliner ] in
-  B0_ocaml.exe "test_uucp" ~doc:"Test segmentations" ~srcs ~meta ~requires
+  let requires = [b0_std; uucp; uuseg; cmdliner] in
+  B0_ocaml.test ~/"test/test_uuseg.ml" ~doc:"Test segmentations" ~requires
 
 let examples =
-  let srcs = [ `File ~/"test/examples.ml" ] in
-  let meta = B0_meta.(empty |> tag test) in
-  let requires = [ uuseg ] in
-  B0_ocaml.exe "examples" ~doc:"Doc samples" ~srcs ~meta ~requires
+  let requires = [uuseg] in
+  B0_ocaml.test ~/"test/examples.ml" ~doc:"Doc samples" ~requires
 
 (* Actions *)
 
@@ -67,10 +61,11 @@ let download_tests =
     let test_file = B0_env.in_scope_dir env test_file in
     (Log.stdout @@ fun m ->
      m "@[<v>Downloading %s@,to %a@]" test_url Fpath.pp test_file);
-    B0_action_kit.fetch_url env test_url test_file
+    let force = true and make_path = false in
+    B0_action_kit.download_url env test_url ~force ~make_path ~dst:test_file
   in
   let tests = ["Line"; "Grapheme"; "Word"; "Sentence"] in
-  List.iter_iter_on_error ~error:(Log.if_error ~use:()) get tests;
+  ignore (List.iter_iter_on_error ~error:(Log.if_error ~use:()) get tests);
   Ok ()
 
 (* Packs *)

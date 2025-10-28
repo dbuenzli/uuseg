@@ -202,19 +202,17 @@ let main () =
     Arg.(value & opt B0_std_cli.filepath (Fpath.v "test/LineBreakTest.txt")
          & info ["lb"] ~doc:"The LineBreakTest.txt file")
   in
-  let args =
-    let open Term.Syntax in
-    let+ g_file and+ w_file and+ s_file and+ l_file in
-    (g_file, w_file, s_file, l_file)
-  in
   let doc = "Run Unicode segmentation conformance tests" in
-  Test.main' ~doc args @@ fun (g_file, w_file, s_file, l_file) ->
-  test_LB30b_assumption ();
-  test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file ();
-  test_conformance `Word "word boundary" [] w_file ();
-  test_conformance `Sentence "sentence boundary" [] s_file ();
-  test_conformance `Line_break "line break boundary" [] l_file ();
-  test_others ();
-  test_uuseg_string ()
+  Test.main' ~doc @@
+  let open Cmdliner.Term.Syntax in
+  let+ g_file and+ w_file and+ s_file and+ l_file in
+  fun () ->
+    test_LB30b_assumption ();
+    test_conformance `Grapheme_cluster "grapheme cluster boundary" [] g_file ();
+    test_conformance `Word "word boundary" [] w_file ();
+    test_conformance `Sentence "sentence boundary" [] s_file ();
+    test_conformance `Line_break "line break boundary" [] l_file ();
+    test_others ();
+    test_uuseg_string ()
 
 let () = if !Sys.interactive then () else exit (main ())
