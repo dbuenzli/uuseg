@@ -62,12 +62,12 @@ let decode_conformance_specs ignores ic =
               if ignores = [] then loop (spec :: specs) else
               try
                 let reason = List.assoc spec ignores in
-                Test.log "Skip test (%s): %s" reason test;
+                Test.Log.msg "Skip test (%s): %s" reason test;
                 loop (specs)
               with
               | Not_found -> loop (spec :: specs)
               with Exit ->
-                Test.log
+                Test.Log.msg
                   "Skip test (surrogate not a scalar value): %s" test;
                   loop specs
             end
@@ -115,7 +115,7 @@ let test_conformance seg name ignores inf =
   in
   let test spec = test_spec seg (seq_of_spec [] spec) spec in
   let fail ?__POS__ n ~assertions =
-    Test.log_fail "%a assertions %a"
+    Test.Log.fail "%a assertions %a"
       Test.Fmt.fail_count_ratio (n, assertions) Test.Fmt.failed ()
   in
   Test.block ~__POS__ ~fail @@ fun () ->
