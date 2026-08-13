@@ -23,7 +23,7 @@
    LB11                               × WJ
                                    WJ ×
    LB12                            GL ×
-   LB12a               ¬(SP|BA|HY|HH) × GL
+   LB12a                  ¬(SP|HY|HH) × GL
    LB13                               × (CL|CP|EX|SY)
    LB14                 (OP|OP30) SP* ×
    LB15                        QU SP* × (OP|OP30)
@@ -206,7 +206,7 @@ let equal = ( = )
 
 let lb10_rewrite = function CM | ZWJ -> AL | l -> l
 let is_lb9_X = function  BK | CR | LF | NL | SP | ZW | Sot -> false | _ -> true
-let is_lb12_l0 = function SP | BA | HY | HH -> false | _ -> true
+let is_lb12_l0 = function SP | HY | HH -> false | _ -> true
 
 let has_break s = (* N.B. sets s.mandatory by side effect. *)
   let mandatory s = s.mandatory <- true; true in
