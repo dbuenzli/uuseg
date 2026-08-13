@@ -57,10 +57,10 @@ let download_tests =
   B0_unit.of_action "download-tests" ~doc @@ fun env _ ~args:_ ->
   let get kind =
     let test_url = test_url kind in
-    let test_file = Fpath.v (Fmt.str "test/%sBreakTest.txt" kind) in
+    let test_file = Filepath.v (Fmt.str "test/%sBreakTest.txt" kind) in
     let test_file = B0_env.in_scope_dir env test_file in
     (Log.stdout @@ fun m ->
-     m "@[<v>Downloading %s@,to %a@]" test_url Fpath.pp test_file);
+     m "@[<v>Downloading %s@,to %a@]" test_url Filepath.pp test_file);
     let force = true and make_path = false in
     B0_action_kit.download_url env test_url ~force ~make_path ~dst:test_file
   in

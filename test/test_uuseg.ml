@@ -109,7 +109,7 @@ let test_conformance seg name ignores inf =
   Test.test (Printf.sprintf "conformance of %s" name) @@ fun () ->
   let specs =
     try
-      In_channel.with_open_bin (Fpath.to_string inf) @@ fun ic ->
+      In_channel.with_open_bin (Filepath.to_string inf) @@ fun ic ->
       decode_conformance_specs ignores ic
     with Sys_error e -> Test.failstop "%s" e
   in
@@ -187,19 +187,19 @@ let test_LB30b_assumption =
 let main () =
   let open Cmdliner in
   let g_file =
-    Arg.(value & opt B0_std_cli.filepath (Fpath.v "test/GraphemeBreakTest.txt")
+    Arg.(value & opt B0_std_cli.file (Filepath.v "test/GraphemeBreakTest.txt")
          & info ["g"] ~doc:"The GraphemeBreakTest.txt file")
   in
   let w_file =
-    Arg.(value & opt B0_std_cli.filepath (Fpath.v "test/WordBreakTest.txt")
+    Arg.(value & opt B0_std_cli.file (Filepath.v "test/WordBreakTest.txt")
          & info ["w"] ~doc:"The WordBreakTest.txt file")
   in
   let s_file =
-    Arg.(value & opt B0_std_cli.filepath (Fpath.v "test/SentenceBreakTest.txt")
+    Arg.(value & opt B0_std_cli.file (Filepath.v "test/SentenceBreakTest.txt")
          & info ["s"] ~doc:"The SentenceBreakTest.txt file")
   in
   let l_file =
-    Arg.(value & opt B0_std_cli.filepath (Fpath.v "test/LineBreakTest.txt")
+    Arg.(value & opt B0_std_cli.file (Filepath.v "test/LineBreakTest.txt")
          & info ["lb"] ~doc:"The LineBreakTest.txt file")
   in
   let doc = "Run Unicode segmentation conformance tests" in
