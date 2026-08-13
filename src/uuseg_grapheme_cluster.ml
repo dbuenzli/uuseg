@@ -17,11 +17,8 @@
    GB9.                   × (EX|ZWJ)
    GB9a.                  × SM
    GB9b.               PP ×
-   GB9c. \p{InCB=Consonant} [\p{InCB=Extend}\p{InCB=Linker}]*
-         \p{InCB=Linker} [\p{InCB=Extend}\p{InCB=Linker}]*
-         ×
-         \p{InCB=Consonant}
-   GB11. \p{Extended_Pictographic} EX* ZWJ x \p{Extended_Pictographic}
+   GB9c. \p{InCB=Linker} \p{InCB=Extend}* × \p{InCB=Consonant}
+   GB11. \p{Extended_Pictographic} EX* ZWJ × \p{Extended_Pictographic}
    GB12.  sot (RI RI)* RI × RI
    GB13.   [^RI] (RI RI)* × RI
    GB999.             Any ÷ Any
@@ -56,8 +53,9 @@ let gcb u = byte_to_gcb.(Uucp.Break.Low.grapheme_cluster u)
 let byte_to_incb = [| Consonant; Extend; Linker; None' |]
 let incb u = byte_to_incb.(Uucp.Break.Low.indic_conjunct_break u)
 
-type left_gb9c_state = (* Ad-hoc state for matching GB9c *)
-| Reset | Has_consonant | Has_linker
+type left_gb9c_state =
+(* Ad-hoc state for matching GB9c, was much simplified in 18.0.0 *)
+| Reset | Has_linker
 
 type state =
 | Fill  (* get next uchar to decide boundary. *)
@@ -121,10 +119,9 @@ let update_left s right right_incb right_u =
       s.left_emoji_seq <- false
   end;
   s.left_gb9c <- begin match right_incb with
-  | None' -> Reset
-  | Consonant -> Has_consonant
-  | Linker when s.left_gb9c = Has_consonant -> Has_linker
-  | Extend | Linker -> s.left_gb9c
+  | None' | Consonant -> Reset
+  | Linker -> Has_linker
+  | Extend -> s.left_gb9c
   end
 
 let add s = function
